@@ -263,7 +263,7 @@ Results:
 - skill listing returns metadata-only summaries suitable for agent consumption
 - skill commands support `--json`
 
-### Step 7: Stats and verification surface
+### Step 7: Stats and verification surface [DONE]
 
 What this achieves:
 Give users and agents quick proof that storage is working, with both global and profile-scoped visibility.

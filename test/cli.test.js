@@ -501,6 +501,65 @@ test("rejects invalid skill frontmatter and unsafe managed paths", async () => {
   assert.equal(JSON.parse(unsafeRemove.stdout).error.code, "INVALID_SKILL_SUBDIR");
 });
 
+test("reports global stats across profiles", async () => {
+  const sleHome = await createInstalledSleHome();
+  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+  run(["memory", "add", "--target", "memory", "--entry", "Default memory"], { env: { SLE_HOME: sleHome } });
+  run(["memory", "add", "research", "--target", "user", "--entry", "Research preference"], {
+    env: { SLE_HOME: sleHome },
+  });
+  run(["skill", "create", "deploy"], { env: { SLE_HOME: sleHome } });
+  run(["skill", "create", "investigate", "research"], { env: { SLE_HOME: sleHome } });
+  run(["skill", "view", "investigate", "research"], { env: { SLE_HOME: sleHome } });
+
+  const result = run(["stats", "--json"], { env: { SLE_HOME: sleHome } });
+  assert.equal(result.status, 0);
+
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.data.profileCount, 2);
+  assert.equal(parsed.data.defaultProfile, "default");
+  assert.equal(parsed.data.totalMemories, 2);
+  assert.equal(parsed.data.totalSkills, 2);
+  assert.equal(parsed.data.latestActivity.profile, "research");
+  assert.equal(parsed.data.latestActivity.kind, "skill");
+  assert.equal(parsed.data.latestActivity.skill, "investigate");
+  assert.equal(parsed.data.latestActivity.label, "skill:investigate");
+  assert.ok(parsed.data.latestActivity.at);
+});
+
+test("reports per-profile stats with memory and skill activity", async () => {
+  const sleHome = await createInstalledSleHome();
+  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+  run(["memory", "add", "research", "--target", "memory", "--entry", "Research database"], {
+    env: { SLE_HOME: sleHome },
+  });
+  run(["memory", "add", "research", "--target", "user", "--entry", "Prefers exact outputs"], {
+    env: { SLE_HOME: sleHome },
+  });
+  run(["skill", "create", "deploy", "research"], { env: { SLE_HOME: sleHome } });
+  run(["skill", "view", "deploy", "research"], { env: { SLE_HOME: sleHome } });
+
+  const result = run(["stats", "profile", "research", "--json"], { env: { SLE_HOME: sleHome } });
+  assert.equal(result.status, 0);
+
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.data.profile, "research");
+  assert.equal(parsed.data.memories.memory.entryCount, 1);
+  assert.equal(parsed.data.memories.user.entryCount, 1);
+  assert.equal(parsed.data.memories.totalEntries, 2);
+  assert.equal(parsed.data.memories.lastModified.target, "user");
+  assert.equal(parsed.data.memories.lastModified.label, "memory:user");
+  assert.equal(parsed.data.skills.count, 1);
+  assert.equal(parsed.data.skills.lastModified.skill, "deploy");
+  assert.equal(parsed.data.skills.lastModified.kind, "skill");
+  assert.equal(parsed.data.lastActivity.skill, "deploy");
+  assert.equal(parsed.data.lastWhat, "skill:deploy");
+  assert.equal(parsed.data.telemetrySchemaVersion, 1);
+  assert.ok(parsed.data.soul.modifiedAt);
+});
+
 async function createTempSleHome() {
   return fs.mkdtemp(path.join(os.tmpdir(), "sle-test-"));
 }
