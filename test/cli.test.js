@@ -6,7 +6,7 @@ const path = require("path");
 const { spawnSync } = require("node:child_process");
 
 const repoRoot = path.join(__dirname, "..");
-const cliPath = path.join(__dirname, "..", "bin", "sle.js");
+const cliPath = path.join(__dirname, "..", "bin", "sla.js");
 
 function run(args, options = {}) {
   return runCommand(process.execPath, [cliPath, ...args], options);
@@ -42,7 +42,7 @@ test("prints top-level help", () => {
   assert.equal(result.status, 0);
   assert.match(result.stdout, /Profile-scoped memory and skills CLI for agents\./);
   assert.match(result.stdout, /Examples:/);
-  assert.match(result.stdout, /sle install/);
+  assert.match(result.stdout, /sla install/);
 });
 
 test("prints focused command help", () => {
@@ -50,7 +50,7 @@ test("prints focused command help", () => {
 
   assert.equal(result.status, 0);
   assert.match(result.stdout, /Create a named profile\./);
-  assert.match(result.stdout, /sle profile create research/);
+  assert.match(result.stdout, /sla profile create research/);
 });
 
 test("returns machine-readable JSON errors", () => {
@@ -59,7 +59,7 @@ test("returns machine-readable JSON errors", () => {
   assert.equal(result.status, 1);
   const parsed = JSON.parse(result.stdout);
   assert.deepEqual(parsed.ok, false);
-  assert.equal(parsed.error.code, "SLE_NOT_INITIALIZED");
+  assert.equal(parsed.error.code, "SLA_NOT_INITIALIZED");
 });
 
 test("validates names with explicit errors", () => {
@@ -69,32 +69,32 @@ test("validates names with explicit errors", () => {
   assert.match(result.stderr, /INVALID_PROFILE_NAME/);
 });
 
-test("bootstraps SLE home on install", async () => {
-  const sleHome = await createTempSleHome();
+test("bootstraps SLA home on install", async () => {
+  const slaHome = await createTempSlaHome();
 
-  const result = run(["install"], { env: { SLE_HOME: sleHome } });
+  const result = run(["install"], { env: { SLA_HOME: slaHome } });
 
   assert.equal(result.status, 0);
-  assert.match(result.stdout, /Initialized SLE/);
+  assert.match(result.stdout, /Initialized SLA/);
 
-  const config = JSON.parse(await fs.readFile(path.join(sleHome, "config.json"), "utf8"));
+  const config = JSON.parse(await fs.readFile(path.join(slaHome, "config.json"), "utf8"));
   assert.equal(config.schemaVersion, 1);
   assert.equal(config.defaultProfile, "default");
   assert.deepEqual(config.hosts, {});
 
-  await assertPathExists(path.join(sleHome, "default", "SOUL.md"));
-  await assertPathExists(path.join(sleHome, "default", "memories", "MEMORY.md"));
-  await assertPathExists(path.join(sleHome, "default", "memories", "USER.md"));
-  await assertPathExists(path.join(sleHome, "default", "skills", ".usage.json"));
+  await assertPathExists(path.join(slaHome, "default", "SOUL.md"));
+  await assertPathExists(path.join(slaHome, "default", "memories", "MEMORY.md"));
+  await assertPathExists(path.join(slaHome, "default", "memories", "USER.md"));
+  await assertPathExists(path.join(slaHome, "default", "skills", ".usage.json"));
 });
 
 test("rerunning install is idempotent", async () => {
-  const sleHome = await createTempSleHome();
+  const slaHome = await createTempSlaHome();
 
-  const first = run(["install", "--json"], { env: { SLE_HOME: sleHome } });
+  const first = run(["install", "--json"], { env: { SLA_HOME: slaHome } });
   assert.equal(first.status, 0);
 
-  const second = run(["install", "--json"], { env: { SLE_HOME: sleHome } });
+  const second = run(["install", "--json"], { env: { SLA_HOME: slaHome } });
   assert.equal(second.status, 0);
 
   const parsed = JSON.parse(second.stdout);
@@ -104,33 +104,33 @@ test("rerunning install is idempotent", async () => {
 });
 
 test("schema mismatch is rejected before command execution", async () => {
-  const sleHome = await createTempSleHome();
-  await fs.mkdir(sleHome, { recursive: true });
+  const slaHome = await createTempSlaHome();
+  await fs.mkdir(slaHome, { recursive: true });
   await fs.writeFile(
-    path.join(sleHome, "config.json"),
+    path.join(slaHome, "config.json"),
     `${JSON.stringify({ schemaVersion: 999, defaultProfile: "default", hosts: {} }, null, 2)}\n`,
     "utf8",
   );
 
-  const result = run(["profile", "list"], { env: { SLE_HOME: sleHome } });
+  const result = run(["profile", "list"], { env: { SLA_HOME: slaHome } });
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /SCHEMA_MIGRATION_REQUIRED/);
 });
 
 test("creates and lists named profiles", async () => {
-  const sleHome = await createInstalledSleHome();
+  const slaHome = await createInstalledSlaHome();
 
-  const created = run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+  const created = run(["profile", "create", "research"], { env: { SLA_HOME: slaHome } });
   assert.equal(created.status, 0);
   assert.match(created.stdout, /Created profile 'research'/);
 
-  await assertPathExists(path.join(sleHome, "research", "SOUL.md"));
-  await assertPathExists(path.join(sleHome, "research", "memories", "MEMORY.md"));
-  await assertPathExists(path.join(sleHome, "research", "memories", "USER.md"));
-  await assertPathExists(path.join(sleHome, "research", "skills", ".usage.json"));
+  await assertPathExists(path.join(slaHome, "research", "SOUL.md"));
+  await assertPathExists(path.join(slaHome, "research", "memories", "MEMORY.md"));
+  await assertPathExists(path.join(slaHome, "research", "memories", "USER.md"));
+  await assertPathExists(path.join(slaHome, "research", "skills", ".usage.json"));
 
-  const listed = run(["profile", "list", "--json"], { env: { SLE_HOME: sleHome } });
+  const listed = run(["profile", "list", "--json"], { env: { SLA_HOME: slaHome } });
   assert.equal(listed.status, 0);
 
   const parsed = JSON.parse(listed.stdout);
@@ -140,12 +140,12 @@ test("creates and lists named profiles", async () => {
       profiles: [
         {
           name: "default",
-          path: path.join(sleHome, "default"),
+          path: path.join(slaHome, "default"),
           isDefault: true,
         },
         {
           name: "research",
-          path: path.join(sleHome, "research"),
+          path: path.join(slaHome, "research"),
           isDefault: false,
         },
       ],
@@ -155,24 +155,24 @@ test("creates and lists named profiles", async () => {
 });
 
 test("returns profile directory using explicit or default resolution", async () => {
-  const sleHome = await createInstalledSleHome();
-  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+  const slaHome = await createInstalledSlaHome();
+  run(["profile", "create", "research"], { env: { SLA_HOME: slaHome } });
 
-  const explicitResult = run(["profile", "dir", "research"], { env: { SLE_HOME: sleHome } });
+  const explicitResult = run(["profile", "dir", "research"], { env: { SLA_HOME: slaHome } });
   assert.equal(explicitResult.status, 0);
-  assert.equal(explicitResult.stdout.trim(), path.join(sleHome, "research"));
+  assert.equal(explicitResult.stdout.trim(), path.join(slaHome, "research"));
 
-  const defaultResult = run(["profile", "dir"], { env: { SLE_HOME: sleHome } });
+  const defaultResult = run(["profile", "dir"], { env: { SLA_HOME: slaHome } });
   assert.equal(defaultResult.status, 0);
-  assert.equal(defaultResult.stdout.trim(), path.join(sleHome, "default"));
+  assert.equal(defaultResult.stdout.trim(), path.join(slaHome, "default"));
 });
 
 test("sets and gets the default profile", async () => {
-  const sleHome = await createInstalledSleHome();
-  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+  const slaHome = await createInstalledSlaHome();
+  run(["profile", "create", "research"], { env: { SLA_HOME: slaHome } });
 
   const setDefaultResult = run(["profile", "set-default", "research", "--json"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
   assert.equal(setDefaultResult.status, 0);
 
@@ -180,30 +180,30 @@ test("sets and gets the default profile", async () => {
   assert.equal(setDefaultParsed.ok, true);
   assert.equal(setDefaultParsed.data.defaultProfile, "research");
 
-  const getDefaultResult = run(["profile", "get-default"], { env: { SLE_HOME: sleHome } });
+  const getDefaultResult = run(["profile", "get-default"], { env: { SLA_HOME: slaHome } });
   assert.equal(getDefaultResult.status, 0);
   assert.equal(getDefaultResult.stdout.trim(), "research");
 
-  const config = JSON.parse(await fs.readFile(path.join(sleHome, "config.json"), "utf8"));
+  const config = JSON.parse(await fs.readFile(path.join(slaHome, "config.json"), "utf8"));
   assert.equal(config.defaultProfile, "research");
 });
 
 test("refuses to delete the current default profile", async () => {
-  const sleHome = await createInstalledSleHome();
+  const slaHome = await createInstalledSlaHome();
 
-  const result = run(["profile", "delete", "default", "--yes"], { env: { SLE_HOME: sleHome } });
+  const result = run(["profile", "delete", "default", "--yes"], { env: { SLA_HOME: slaHome } });
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /DEFAULT_PROFILE_DELETE_FORBIDDEN/);
-  await assertPathExists(path.join(sleHome, "default"));
+  await assertPathExists(path.join(slaHome, "default"));
 });
 
 test("deletes a non-default profile with explicit confirmation", async () => {
-  const sleHome = await createInstalledSleHome();
-  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+  const slaHome = await createInstalledSlaHome();
+  run(["profile", "create", "research"], { env: { SLA_HOME: slaHome } });
 
   const result = run(["profile", "delete", "research", "--yes", "--json"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
   assert.equal(result.status, 0);
 
@@ -211,35 +211,35 @@ test("deletes a non-default profile with explicit confirmation", async () => {
   assert.equal(parsed.ok, true);
   assert.equal(parsed.data.deletedProfile, "research");
 
-  await assert.rejects(fs.access(path.join(sleHome, "research")));
+  await assert.rejects(fs.access(path.join(slaHome, "research")));
 });
 
 test("views and edits soul content from file and stdin", async () => {
-  const sleHome = await createInstalledSleHome();
-  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+  const slaHome = await createInstalledSlaHome();
+  run(["profile", "create", "research"], { env: { SLA_HOME: slaHome } });
 
-  const initialView = run(["soul", "view", "research", "--json"], { env: { SLE_HOME: sleHome } });
+  const initialView = run(["soul", "view", "research", "--json"], { env: { SLA_HOME: slaHome } });
   assert.equal(initialView.status, 0);
   assert.deepEqual(JSON.parse(initialView.stdout), {
     ok: true,
     data: {
       profile: "research",
-      path: path.join(sleHome, "research", "SOUL.md"),
+      path: path.join(slaHome, "research", "SOUL.md"),
       raw: "# SOUL\n",
     },
   });
 
-  const sourcePath = path.join(sleHome, "next-soul.md");
+  const sourcePath = path.join(slaHome, "next-soul.md");
   await fs.writeFile(sourcePath, "# SOUL\n\nResearch profile for infrastructure work.\n", "utf8");
 
   const fileEdit = run(["soul", "edit", "research", "--file", sourcePath], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
   assert.equal(fileEdit.status, 0);
   assert.match(fileEdit.stdout, /Updated SOUL\.md for profile 'research'/);
 
   const stdinEdit = run(["soul", "edit", "--stdin", "--json"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
     input: "# SOUL\n\nDefault profile for quick notes.\n",
   });
   assert.equal(stdinEdit.status, 0);
@@ -249,24 +249,24 @@ test("views and edits soul content from file and stdin", async () => {
   assert.equal(stdinParsed.data.source, "stdin");
   assert.equal(stdinParsed.data.raw, "# SOUL\n\nDefault profile for quick notes.\n");
 
-  const researchSoul = await fs.readFile(path.join(sleHome, "research", "SOUL.md"), "utf8");
+  const researchSoul = await fs.readFile(path.join(slaHome, "research", "SOUL.md"), "utf8");
   assert.equal(researchSoul, "# SOUL\n\nResearch profile for infrastructure work.\n");
 
-  const defaultSoul = await fs.readFile(path.join(sleHome, "default", "SOUL.md"), "utf8");
+  const defaultSoul = await fs.readFile(path.join(slaHome, "default", "SOUL.md"), "utf8");
   assert.equal(defaultSoul, "# SOUL\n\nDefault profile for quick notes.\n");
 });
 
 test("requires exactly one soul edit input source", async () => {
-  const sleHome = await createInstalledSleHome();
-  const sourcePath = path.join(sleHome, "next-soul.md");
+  const slaHome = await createInstalledSlaHome();
+  const sourcePath = path.join(slaHome, "next-soul.md");
   await fs.writeFile(sourcePath, "# SOUL\n\nProfile.\n", "utf8");
 
-  const missingInput = run(["soul", "edit", "--json"], { env: { SLE_HOME: sleHome } });
+  const missingInput = run(["soul", "edit", "--json"], { env: { SLA_HOME: slaHome } });
   assert.equal(missingInput.status, 2);
   assert.equal(JSON.parse(missingInput.stdout).error.code, "INVALID_SOUL_INPUT");
 
   const duplicateInput = run(["soul", "edit", "--file", sourcePath, "--stdin", "--json"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
     input: "# SOUL\n\nConflicting input.\n",
   });
   assert.equal(duplicateInput.status, 2);
@@ -274,22 +274,22 @@ test("requires exactly one soul edit input source", async () => {
 });
 
 test("adds, lists, views, replaces, and removes memory entries", async () => {
-  const sleHome = await createInstalledSleHome();
-  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+  const slaHome = await createInstalledSlaHome();
+  run(["profile", "create", "research"], { env: { SLA_HOME: slaHome } });
 
   const addMemory = run(
     ["memory", "add", "research", "--target", "memory", "--entry", "Postgres runs locally"],
-    { env: { SLE_HOME: sleHome } },
+    { env: { SLA_HOME: slaHome } },
   );
   assert.equal(addMemory.status, 0);
 
   const addUser = run(
     ["memory", "add", "--target", "user", "--entry", "Prefers concise answers"],
-    { env: { SLE_HOME: sleHome } },
+    { env: { SLA_HOME: slaHome } },
   );
   assert.equal(addUser.status, 0);
 
-  const listed = run(["memory", "list", "research", "--json"], { env: { SLE_HOME: sleHome } });
+  const listed = run(["memory", "list", "research", "--json"], { env: { SLA_HOME: slaHome } });
   assert.equal(listed.status, 0);
   assert.deepEqual(JSON.parse(listed.stdout), {
     ok: true,
@@ -311,7 +311,7 @@ test("adds, lists, views, replaces, and removes memory entries", async () => {
   });
 
   const userView = run(["memory", "view", "--target", "user", "--json"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
   assert.equal(userView.status, 0);
   const viewed = JSON.parse(userView.stdout);
@@ -323,18 +323,18 @@ test("adds, lists, views, replaces, and removes memory entries", async () => {
 
   const replaceResult = run(
     ["memory", "replace", "--target", "user", "--match", "concise", "--entry", "Prefers detailed answers"],
-    { env: { SLE_HOME: sleHome } },
+    { env: { SLA_HOME: slaHome } },
   );
   assert.equal(replaceResult.status, 0);
 
   const removeResult = run(
     ["memory", "remove", "--target", "user", "--match", "detailed"],
-    { env: { SLE_HOME: sleHome } },
+    { env: { SLA_HOME: slaHome } },
   );
   assert.equal(removeResult.status, 0);
 
   const usage = JSON.parse(
-    await fs.readFile(path.join(sleHome, "default", "skills", ".usage.json"), "utf8"),
+    await fs.readFile(path.join(slaHome, "default", "skills", ".usage.json"), "utf8"),
   );
   assert.equal(usage.memory.lastModifiedTarget, "user");
   assert.equal(usage.memory.lastOperation, "remove");
@@ -343,17 +343,17 @@ test("adds, lists, views, replaces, and removes memory entries", async () => {
 });
 
 test("rejects duplicate memory entries", async () => {
-  const sleHome = await createInstalledSleHome();
+  const slaHome = await createInstalledSlaHome();
 
   const first = run(
     ["memory", "add", "--target", "memory", "--entry", "The API runs in us-east-1"],
-    { env: { SLE_HOME: sleHome } },
+    { env: { SLA_HOME: slaHome } },
   );
   assert.equal(first.status, 0);
 
   const duplicate = run(
     ["memory", "add", "--target", "memory", "--entry", "The API runs in us-east-1", "--json"],
-    { env: { SLE_HOME: sleHome } },
+    { env: { SLA_HOME: slaHome } },
   );
   assert.equal(duplicate.status, 2);
 
@@ -363,25 +363,25 @@ test("rejects duplicate memory entries", async () => {
 });
 
 test("fails explicitly when memory matches are missing or ambiguous", async () => {
-  const sleHome = await createInstalledSleHome();
+  const slaHome = await createInstalledSlaHome();
 
   run(["memory", "add", "--target", "memory", "--entry", "Primary API endpoint"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
   run(["memory", "add", "--target", "memory", "--entry", "Primary API token"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
 
   const ambiguous = run(
     ["memory", "replace", "--target", "memory", "--match", "Primary API", "--entry", "Updated"],
-    { env: { SLE_HOME: sleHome } },
+    { env: { SLA_HOME: slaHome } },
   );
   assert.equal(ambiguous.status, 1);
   assert.match(ambiguous.stderr, /MEMORY_ENTRY_AMBIGUOUS/);
 
   const missing = run(
     ["memory", "remove", "--target", "memory", "--match", "does not exist", "--json"],
-    { env: { SLE_HOME: sleHome } },
+    { env: { SLA_HOME: slaHome } },
   );
   assert.equal(missing.status, 1);
   const parsed = JSON.parse(missing.stdout);
@@ -389,11 +389,11 @@ test("fails explicitly when memory matches are missing or ambiguous", async () =
 });
 
 test("creates, lists, views, edits, and deletes skills", async () => {
-  const sleHome = await createInstalledSleHome();
-  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+  const slaHome = await createInstalledSlaHome();
+  run(["profile", "create", "research"], { env: { SLA_HOME: slaHome } });
 
   const created = run(["skill", "create", "deploy", "research", "--json"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
   assert.equal(created.status, 0);
   const createdParsed = JSON.parse(created.stdout);
@@ -401,7 +401,7 @@ test("creates, lists, views, edits, and deletes skills", async () => {
   assert.equal(createdParsed.data.skill, "deploy");
   assert.equal(createdParsed.data.metadata.name, "deploy");
 
-  const listed = run(["skill", "list", "research", "--json"], { env: { SLE_HOME: sleHome } });
+  const listed = run(["skill", "list", "research", "--json"], { env: { SLA_HOME: slaHome } });
   assert.equal(listed.status, 0);
   assert.deepEqual(JSON.parse(listed.stdout), {
     ok: true,
@@ -412,14 +412,14 @@ test("creates, lists, views, edits, and deletes skills", async () => {
           skill: "deploy",
           name: "deploy",
           description: "TODO: describe this skill.",
-          path: path.join(sleHome, "research", "skills", "deploy", "SKILL.md"),
+          path: path.join(slaHome, "research", "skills", "deploy", "SKILL.md"),
         },
       ],
     },
   });
 
   const viewed = run(["skill", "view", "deploy", "research", "--json"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
   assert.equal(viewed.status, 0);
   const viewedParsed = JSON.parse(viewed.stdout);
@@ -427,7 +427,7 @@ test("creates, lists, views, edits, and deletes skills", async () => {
   assert.equal(viewedParsed.data.metadata.name, "deploy");
   assert.match(viewedParsed.data.raw, /^---\nname: deploy\n/);
 
-  const nextSkillPath = path.join(sleHome, "deploy-skill.md");
+  const nextSkillPath = path.join(slaHome, "deploy-skill.md");
   await fs.writeFile(
     nextSkillPath,
     ["---", "name: deploy", "description: Deploys the API.", "---", "", "# Deploy", "", "Run the release flow.", ""].join("\n"),
@@ -435,54 +435,54 @@ test("creates, lists, views, edits, and deletes skills", async () => {
   );
 
   const edited = run(["skill", "edit", "deploy", "research", "--file", nextSkillPath], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
   assert.equal(edited.status, 0);
   assert.match(edited.stdout, /Updated SKILL\.md/);
 
   const deleted = run(["skill", "delete", "deploy", "research", "--yes", "--json"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
   assert.equal(deleted.status, 0);
   const deletedParsed = JSON.parse(deleted.stdout);
   assert.equal(deletedParsed.ok, true);
   assert.equal(deletedParsed.data.deletedSkill, "deploy");
 
-  await assert.rejects(fs.access(path.join(sleHome, "research", "skills", "deploy", "SKILL.md")));
+  await assert.rejects(fs.access(path.join(slaHome, "research", "skills", "deploy", "SKILL.md")));
 
   const usage = JSON.parse(
-    await fs.readFile(path.join(sleHome, "research", "skills", ".usage.json"), "utf8"),
+    await fs.readFile(path.join(slaHome, "research", "skills", ".usage.json"), "utf8"),
   );
   assert.equal(usage.skills.deploy, undefined);
 });
 
 test("writes and removes managed skill files in allowed subdirectories", async () => {
-  const sleHome = await createInstalledSleHome();
-  run(["skill", "create", "deploy"], { env: { SLE_HOME: sleHome } });
+  const slaHome = await createInstalledSlaHome();
+  run(["skill", "create", "deploy"], { env: { SLA_HOME: slaHome } });
 
-  const scriptPath = path.join(sleHome, "check.sh");
+  const scriptPath = path.join(slaHome, "check.sh");
   await fs.writeFile(scriptPath, "#!/bin/sh\necho ok\n", "utf8");
 
   const wrote = run(
     ["skill", "write-file", "deploy", "--subdir", "scripts", "--path", "check.sh", "--file", scriptPath, "--json"],
-    { env: { SLE_HOME: sleHome } },
+    { env: { SLA_HOME: slaHome } },
   );
   assert.equal(wrote.status, 0);
   const wroteParsed = JSON.parse(wrote.stdout);
   assert.equal(wroteParsed.ok, true);
   assert.equal(wroteParsed.data.path, "scripts/check.sh");
 
-  const managedFile = path.join(sleHome, "default", "skills", "deploy", "scripts", "check.sh");
+  const managedFile = path.join(slaHome, "default", "skills", "deploy", "scripts", "check.sh");
   assert.equal(await fs.readFile(managedFile, "utf8"), "#!/bin/sh\necho ok\n");
 
   const removed = run(["skill", "remove-file", "deploy", "--path", "scripts/check.sh", "--yes"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
   assert.equal(removed.status, 0);
   await assert.rejects(fs.access(managedFile));
 
   const usage = JSON.parse(
-    await fs.readFile(path.join(sleHome, "default", "skills", ".usage.json"), "utf8"),
+    await fs.readFile(path.join(slaHome, "default", "skills", ".usage.json"), "utf8"),
   );
   assert.equal(usage.skills.deploy.editCount, 3);
   assert.equal(usage.skills.deploy.viewCount, 0);
@@ -490,14 +490,14 @@ test("writes and removes managed skill files in allowed subdirectories", async (
 });
 
 test("rejects invalid skill frontmatter and unsafe managed paths", async () => {
-  const sleHome = await createInstalledSleHome();
-  run(["skill", "create", "deploy"], { env: { SLE_HOME: sleHome } });
+  const slaHome = await createInstalledSlaHome();
+  run(["skill", "create", "deploy"], { env: { SLA_HOME: slaHome } });
 
-  const invalidSkillPath = path.join(sleHome, "invalid-skill.md");
+  const invalidSkillPath = path.join(slaHome, "invalid-skill.md");
   await fs.writeFile(invalidSkillPath, "# Deploy\n\nMissing frontmatter.\n", "utf8");
 
   const invalidFrontmatter = run(["skill", "edit", "deploy", "--file", invalidSkillPath, "--json"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
   assert.equal(invalidFrontmatter.status, 2);
   assert.equal(JSON.parse(invalidFrontmatter.stdout).error.code, "INVALID_SKILL_FRONTMATTER");
@@ -505,7 +505,7 @@ test("rejects invalid skill frontmatter and unsafe managed paths", async () => {
   const unsafeWrite = run(
     ["skill", "write-file", "deploy", "--subdir", "scripts", "--path", "../check.sh", "--stdin", "--json"],
     {
-      env: { SLE_HOME: sleHome },
+      env: { SLA_HOME: slaHome },
       input: "echo bad\n",
     },
   );
@@ -513,24 +513,24 @@ test("rejects invalid skill frontmatter and unsafe managed paths", async () => {
   assert.equal(JSON.parse(unsafeWrite.stdout).error.code, "INVALID_MANAGED_PATH");
 
   const unsafeRemove = run(["skill", "remove-file", "deploy", "--path", "SKILL.md", "--yes", "--json"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
   assert.equal(unsafeRemove.status, 2);
   assert.equal(JSON.parse(unsafeRemove.stdout).error.code, "INVALID_SKILL_SUBDIR");
 });
 
 test("reports global stats across profiles", async () => {
-  const sleHome = await createInstalledSleHome();
-  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
-  run(["memory", "add", "--target", "memory", "--entry", "Default memory"], { env: { SLE_HOME: sleHome } });
+  const slaHome = await createInstalledSlaHome();
+  run(["profile", "create", "research"], { env: { SLA_HOME: slaHome } });
+  run(["memory", "add", "--target", "memory", "--entry", "Default memory"], { env: { SLA_HOME: slaHome } });
   run(["memory", "add", "research", "--target", "user", "--entry", "Research preference"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
-  run(["skill", "create", "deploy"], { env: { SLE_HOME: sleHome } });
-  run(["skill", "create", "investigate", "research"], { env: { SLE_HOME: sleHome } });
-  run(["skill", "view", "investigate", "research"], { env: { SLE_HOME: sleHome } });
+  run(["skill", "create", "deploy"], { env: { SLA_HOME: slaHome } });
+  run(["skill", "create", "investigate", "research"], { env: { SLA_HOME: slaHome } });
+  run(["skill", "view", "investigate", "research"], { env: { SLA_HOME: slaHome } });
 
-  const result = run(["stats", "--json"], { env: { SLE_HOME: sleHome } });
+  const result = run(["stats", "--json"], { env: { SLA_HOME: slaHome } });
   assert.equal(result.status, 0);
 
   const parsed = JSON.parse(result.stdout);
@@ -547,18 +547,18 @@ test("reports global stats across profiles", async () => {
 });
 
 test("reports per-profile stats with memory and skill activity", async () => {
-  const sleHome = await createInstalledSleHome();
-  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+  const slaHome = await createInstalledSlaHome();
+  run(["profile", "create", "research"], { env: { SLA_HOME: slaHome } });
   run(["memory", "add", "research", "--target", "memory", "--entry", "Research database"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
   run(["memory", "add", "research", "--target", "user", "--entry", "Prefers exact outputs"], {
-    env: { SLE_HOME: sleHome },
+    env: { SLA_HOME: slaHome },
   });
-  run(["skill", "create", "deploy", "research"], { env: { SLE_HOME: sleHome } });
-  run(["skill", "view", "deploy", "research"], { env: { SLE_HOME: sleHome } });
+  run(["skill", "create", "deploy", "research"], { env: { SLA_HOME: slaHome } });
+  run(["skill", "view", "deploy", "research"], { env: { SLA_HOME: slaHome } });
 
-  const result = run(["stats", "profile", "research", "--json"], { env: { SLE_HOME: sleHome } });
+  const result = run(["stats", "profile", "research", "--json"], { env: { SLA_HOME: slaHome } });
   assert.equal(result.status, 0);
 
   const parsed = JSON.parse(result.stdout);
@@ -579,11 +579,11 @@ test("reports per-profile stats with memory and skill activity", async () => {
 });
 
 test("installs codex host wrappers and tracks installation metadata", async () => {
-  const sleHome = await createInstalledSleHome();
+  const slaHome = await createInstalledSlaHome();
   const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), "codex-test-"));
 
   const result = run(["host", "install", "codex", "--json"], {
-    env: { SLE_HOME: sleHome, CODEX_HOME: codexHome },
+    env: { SLA_HOME: slaHome, CODEX_HOME: codexHome },
   });
   assert.equal(result.status, 0);
 
@@ -598,19 +598,19 @@ test("installs codex host wrappers and tracks installation metadata", async () =
   assert.ok(parsed.data.installedAt);
 
   const useProfileSkill = await fs.readFile(
-    path.join(codexHome, "skills", "sle-use-profile", "SKILL.md"),
+    path.join(codexHome, "skills", "sla-use-profile", "SKILL.md"),
     "utf8",
   );
-  assert.match(useProfileSkill, /sle profile dir <name>/);
+  assert.match(useProfileSkill, /sla profile dir <name>/);
   assert.match(useProfileSkill, /Do not guess profile names/);
 
   const useProfileAgent = await fs.readFile(
-    path.join(codexHome, "skills", "sle-use-profile", "agents", "openai.yaml"),
+    path.join(codexHome, "skills", "sla-use-profile", "agents", "openai.yaml"),
     "utf8",
   );
   assert.match(useProfileAgent, /display_name: "\/use-profile"/);
 
-  const config = JSON.parse(await fs.readFile(path.join(sleHome, "config.json"), "utf8"));
+  const config = JSON.parse(await fs.readFile(path.join(slaHome, "config.json"), "utf8"));
   assert.equal(config.hosts.codex.installed, true);
   assert.equal(config.hosts.codex.installPath, path.join(codexHome, "skills"));
   assert.deepEqual(config.hosts.codex.installedSkills, [
@@ -622,16 +622,16 @@ test("installs codex host wrappers and tracks installation metadata", async () =
 });
 
 test("rerunning codex host install is idempotent and host list reports status", async () => {
-  const sleHome = await createInstalledSleHome();
+  const slaHome = await createInstalledSlaHome();
   const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), "codex-test-"));
 
   const first = run(["host", "install", "codex", "--json"], {
-    env: { SLE_HOME: sleHome, CODEX_HOME: codexHome },
+    env: { SLA_HOME: slaHome, CODEX_HOME: codexHome },
   });
   assert.equal(first.status, 0);
 
   const second = run(["host", "install", "codex", "--json"], {
-    env: { SLE_HOME: sleHome, CODEX_HOME: codexHome },
+    env: { SLA_HOME: slaHome, CODEX_HOME: codexHome },
   });
   assert.equal(second.status, 0);
 
@@ -642,7 +642,7 @@ test("rerunning codex host install is idempotent and host list reports status", 
   assert.equal(secondParsed.data.unchangedFiles.length, 6);
 
   const listed = run(["host", "list", "--json"], {
-    env: { SLE_HOME: sleHome, CODEX_HOME: codexHome },
+    env: { SLA_HOME: slaHome, CODEX_HOME: codexHome },
   });
   assert.equal(listed.status, 0);
 
@@ -675,7 +675,7 @@ test("npm pack dry run includes only publish-safe runtime files", () => {
   assert.deepEqual(packedFiles, [
     "LICENSE",
     "README.md",
-    "bin/sle.js",
+    "bin/sla.js",
     "package.json",
     "src/cli.js",
     "src/commands/help.js",
@@ -707,9 +707,9 @@ test("npm pack dry run includes only publish-safe runtime files", () => {
   ]);
 });
 
-test("packed tarball installs cleanly and exposes the sle binary", async () => {
-  const packDestination = await fs.mkdtemp(path.join(os.tmpdir(), "sle-pack-"));
-  const installDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "sle-install-"));
+test("packed tarball installs cleanly and exposes the sla binary", async () => {
+  const packDestination = await fs.mkdtemp(path.join(os.tmpdir(), "sla-pack-"));
+  const installDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "sla-install-"));
 
   const packed = runExternal("npm", ["pack", "--json", "--pack-destination", packDestination]);
   assert.equal(packed.status, 0, packed.stderr);
@@ -723,26 +723,26 @@ test("packed tarball installs cleanly and exposes the sle binary", async () => {
   const installed = runExternal("npm", ["install", tarballPath], { cwd: installDirectory });
   assert.equal(installed.status, 0, installed.stderr);
 
-  const sleBinary = path.join(
+  const slaBinary = path.join(
     installDirectory,
     "node_modules",
     ".bin",
-    process.platform === "win32" ? "sle.cmd" : "sle",
+    process.platform === "win32" ? "sla.cmd" : "sla",
   );
-  const help = runCommand(sleBinary, ["help"], { cwd: installDirectory });
+  const help = runCommand(slaBinary, ["help"], { cwd: installDirectory });
   assert.equal(help.status, 0, help.stderr);
   assert.match(help.stdout, /Profile-scoped memory and skills CLI for agents\./);
 });
 
-async function createTempSleHome() {
-  return fs.mkdtemp(path.join(os.tmpdir(), "sle-test-"));
+async function createTempSlaHome() {
+  return fs.mkdtemp(path.join(os.tmpdir(), "sla-test-"));
 }
 
-async function createInstalledSleHome() {
-  const sleHome = await createTempSleHome();
-  const result = run(["install"], { env: { SLE_HOME: sleHome } });
+async function createInstalledSlaHome() {
+  const slaHome = await createTempSlaHome();
+  const result = run(["install"], { env: { SLA_HOME: slaHome } });
   assert.equal(result.status, 0);
-  return sleHome;
+  return slaHome;
 }
 
 async function assertPathExists(targetPath) {

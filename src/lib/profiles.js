@@ -1,9 +1,9 @@
 const fs = require("node:fs/promises");
 const { ensureProfileScaffold } = require("./bootstrap");
 const { loadConfig, saveConfig } = require("./config");
-const { SLEError } = require("./errors");
+const { SLAError } = require("./errors");
 const { pathExists } = require("./filesystem");
-const { getProfilePath, getSleHome } = require("./paths");
+const { getProfilePath, getSlaHome } = require("./paths");
 
 function resolveProfileName({ requestedName, config }) {
   if (requestedName) {
@@ -14,7 +14,7 @@ function resolveProfileName({ requestedName, config }) {
     return config.defaultProfile;
   }
 
-  throw new SLEError("No profile was provided and no default profile is configured.", {
+  throw new SLAError("No profile was provided and no default profile is configured.", {
     code: "DEFAULT_PROFILE_REQUIRED",
     exitCode: 2,
   });
@@ -26,10 +26,10 @@ async function requireConfig() {
     return config;
   }
 
-  throw new SLEError("SLE is not initialized. Run 'sle install' first.", {
-    code: "SLE_NOT_INITIALIZED",
+  throw new SLAError("SLA is not initialized. Run 'sla install' first.", {
+    code: "SLA_NOT_INITIALIZED",
     exitCode: 1,
-    details: { sleHome: getSleHome() },
+    details: { slaHome: getSlaHome() },
   });
 }
 
@@ -37,7 +37,7 @@ async function createProfile(profileName) {
   await requireConfig();
 
   if (await pathExists(getProfilePath(profileName))) {
-    throw new SLEError(`Profile '${profileName}' already exists.`, {
+    throw new SLAError(`Profile '${profileName}' already exists.`, {
       code: "PROFILE_ALREADY_EXISTS",
       exitCode: 2,
       details: { profileName, profilePath: getProfilePath(profileName) },
@@ -60,7 +60,7 @@ async function createProfile(profileName) {
 
 async function listProfiles() {
   const config = await requireConfig();
-  const entries = await fs.readdir(getSleHome(), { withFileTypes: true });
+  const entries = await fs.readdir(getSlaHome(), { withFileTypes: true });
   const profiles = entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => ({
@@ -114,7 +114,7 @@ async function deleteProfile(profileName) {
   await assertProfileExists(profileName);
 
   if (config.defaultProfile === profileName) {
-    throw new SLEError(
+    throw new SLAError(
       `Profile '${profileName}' is the current default and cannot be deleted.`,
       {
         code: "DEFAULT_PROFILE_DELETE_FORBIDDEN",
@@ -139,7 +139,7 @@ async function assertProfileExists(profileName) {
     return profilePath;
   }
 
-  throw new SLEError(`Profile '${profileName}' does not exist.`, {
+  throw new SLAError(`Profile '${profileName}' does not exist.`, {
     code: "PROFILE_NOT_FOUND",
     exitCode: 1,
     details: { profileName, profilePath },

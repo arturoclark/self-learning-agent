@@ -10,7 +10,7 @@ function registerSoulCommands(program) {
     .command("view")
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("Print a profile SOUL.md.")
-    .addHelpText("after", attachExamples(["sle soul view", "sle soul view research"]))
+    .addHelpText("after", attachExamples(["sla soul view", "sla soul view research"]))
     .action(async (...args) => {
       const name = args[0];
       const command = args.at(-1);
@@ -32,7 +32,7 @@ function registerSoulCommands(program) {
     .option("--file <path>", "Read replacement content from a file.")
     .option("--stdin", "Read replacement content from stdin.")
     .description("Replace or update SOUL.md from file input or stdin.")
-    .addHelpText("after", attachExamples(["sle soul edit research --file ./SOUL.md", "cat SOUL.md | sle soul edit --stdin"]))
+    .addHelpText("after", attachExamples(["sla soul edit research --file ./SOUL.md", "cat SOUL.md | sla soul edit --stdin"]))
     .action(async (...args) => {
       const name = args[0];
       const options = args[1];

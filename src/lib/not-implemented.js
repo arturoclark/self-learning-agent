@@ -1,4 +1,4 @@
-const { SLEError } = require("./errors");
+const { SLAError } = require("./errors");
 const { writeResult } = require("./output");
 
 function notImplemented(command, operation, detail) {
@@ -14,7 +14,7 @@ function notImplemented(command, operation, detail) {
 
   return writeResult(command, payload, {
     human: `${payload.error.message} ${detail}`,
-    error: new SLEError(payload.error.message, {
+    error: new SLAError(payload.error.message, {
       code: payload.error.code,
       exitCode: 1,
       details: { operation, detail },

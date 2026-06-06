@@ -1,6 +1,6 @@
 # self-learning-agent
 
-`self-learning-agent` installs the `sle` CLI, a profile-scoped memory and skills manager for agents. It stores profile state under `~/.sle/`, exposes explicit JSON output for agent consumption, and can install thin Codex host wrappers that route profile work back through the CLI.
+`self-learning-agent` installs the `sla` CLI, a profile-scoped memory and skills manager for agents. It stores profile state under `~/.sla/`, exposes explicit JSON output for agent consumption, and can install thin Codex host wrappers that route profile work back through the CLI.
 
 ## Requirements
 
@@ -12,20 +12,20 @@
 npm install -g self-learning-agent
 ```
 
-Run `sle help` after install to see the command surface and examples.
+Run `sla help` after install to see the command surface and examples.
 
 ## Bootstrap
 
 Initialize the home directory and default profile:
 
 ```bash
-sle install
+sla install
 ```
 
 That creates:
 
 ```text
-~/.sle/
+~/.sla/
   config.json
   default/
     SOUL.md
@@ -38,23 +38,23 @@ That creates:
 
 ## Quickstart
 
-Use `sle help` as the primary entrypoint:
+Use `sla help` as the primary entrypoint:
 
 ```bash
-sle help
-sle help profile create
-sle help memory add
+sla help
+sla help profile create
+sla help memory add
 ```
 
 Common flows:
 
 ```bash
-sle profile create research
-sle soul view research
-sle memory add research --target memory --entry "The API runs in us-east-1"
-sle skill create deploy research
-sle stats profile research
-sle host install codex
+sla profile create research
+sla soul view research
+sla memory add research --target memory --entry "The API runs in us-east-1"
+sla skill create deploy research
+sla stats profile research
+sla host install codex
 ```
 
 ## JSON Output
@@ -62,9 +62,9 @@ sle host install codex
 All user-facing commands support `--json` for machine-readable output:
 
 ```bash
-sle profile list --json
-sle memory view research --target user --json
-sle stats --json
+sla profile list --json
+sla memory view research --target user --json
+sla stats --json
 ```
 
 Errors also render as structured JSON when `--json` is used.

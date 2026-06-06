@@ -1,8 +1,8 @@
 const os = require("os");
 const path = require("path");
 
-function getSleHome() {
-  return process.env.SLE_HOME || path.join(os.homedir(), ".sle");
+function getSlaHome() {
+  return process.env.SLA_HOME || path.join(os.homedir(), ".sla");
 }
 
 function getCodexHome() {
@@ -10,11 +10,11 @@ function getCodexHome() {
 }
 
 function getConfigPath() {
-  return path.join(getSleHome(), "config.json");
+  return path.join(getSlaHome(), "config.json");
 }
 
 function getProfilePath(profileName) {
-  return path.join(getSleHome(), profileName);
+  return path.join(getSlaHome(), profileName);
 }
 
 function getSoulPath(profileName) {
@@ -69,7 +69,7 @@ module.exports = {
   getSkillMarkdownPath,
   getSkillPath,
   getSkillsPath,
-  getSleHome,
+  getSlaHome,
   getSoulPath,
   getUsagePath,
 };

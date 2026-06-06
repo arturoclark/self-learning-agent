@@ -8,7 +8,7 @@ function registerStatsCommands(program) {
 
   stats
     .description("Show global metrics across profiles.")
-    .addHelpText("after", attachExamples(["sle stats", "sle stats --json"]))
+    .addHelpText("after", attachExamples(["sla stats", "sla stats --json"]))
     .action(async (...args) => {
       const command = args.at(-1);
       const result = await getGlobalStats();
@@ -27,7 +27,7 @@ function registerStatsCommands(program) {
     .command("profile")
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("Show detailed metrics for one profile.")
-    .addHelpText("after", attachExamples(["sle stats profile", "sle stats profile research"]))
+    .addHelpText("after", attachExamples(["sla stats profile", "sla stats profile research"]))
     .action(async (...args) => {
       const name = args[0];
       const command = args.at(-1);

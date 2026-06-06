@@ -1,5 +1,5 @@
 const fs = require("node:fs/promises");
-const { SLEError } = require("./errors");
+const { SLAError } = require("./errors");
 const { withFileLock, writeFileAtomic } = require("./filesystem");
 const { getSoulPath } = require("./paths");
 const { resolveExistingProfile } = require("./profiles");
@@ -40,7 +40,7 @@ function resolveSoulInputSource(options = {}) {
   const hasStdin = Boolean(options.stdin);
 
   if (hasFile === hasStdin) {
-    throw new SLEError("Provide exactly one input source: --file or --stdin.", {
+    throw new SLAError("Provide exactly one input source: --file or --stdin.", {
       code: "INVALID_SOUL_INPUT",
       exitCode: 2,
       details: {
@@ -73,7 +73,7 @@ async function readSoulInput(source) {
 function normalizeSoulContent(content) {
   const normalized = String(content).replaceAll("\r\n", "\n").trim();
   if (!normalized) {
-    throw new SLEError("SOUL.md content may not be empty.", {
+    throw new SLAError("SOUL.md content may not be empty.", {
       code: "INVALID_SOUL_CONTENT",
       exitCode: 2,
     });

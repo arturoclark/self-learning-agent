@@ -2,7 +2,7 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const { createDefaultConfig, loadConfig, saveConfig } = require("./config");
 const { CURRENT_SCHEMA_VERSION, DEFAULT_PROFILE_NAME } = require("./constants");
-const { SLEError } = require("./errors");
+const { SLAError } = require("./errors");
 const { createDefaultUsage, normalizeUsage } = require("./usage");
 const {
   ensureDirectory,
@@ -15,12 +15,12 @@ const {
   getMemoriesPath,
   getProfilePath,
   getSkillsPath,
-  getSleHome,
+  getSlaHome,
   getSoulPath,
   getUsagePath,
 } = require("./paths");
 
-async function bootstrapSleHome() {
+async function bootstrapSlaHome() {
   const existingConfig = await loadConfig();
   if (existingConfig) {
     await ensureSchemaSupported(existingConfig);
@@ -35,7 +35,7 @@ async function bootstrapSleHome() {
       }
     : createDefaultConfig();
 
-  const sleHome = getSleHome();
+  const slaHome = getSlaHome();
   const targetProfile = config.defaultProfile;
 
   const created = {
@@ -43,7 +43,7 @@ async function bootstrapSleHome() {
     files: [],
   };
 
-  await ensureDirectoryTracked(sleHome, created);
+  await ensureDirectoryTracked(slaHome, created);
   await ensureProfileScaffold(targetProfile, created);
 
   const configPath = getConfigPath();
@@ -55,7 +55,7 @@ async function bootstrapSleHome() {
   ).then(() => config);
 
   return {
-    sleHome,
+    slaHome,
     configPath,
     config: normalizedConfig,
     profilePath: getProfilePath(targetProfile),
@@ -92,7 +92,7 @@ async function runMigrationGuard({ currentVersion, targetVersion }) {
 }
 
 function buildMigrationRequiredError(currentVersion, targetVersion = CURRENT_SCHEMA_VERSION) {
-  return new SLEError("The SLE storage schema version is not supported by this build.", {
+  return new SLAError("The SLA storage schema version is not supported by this build.", {
     code: "SCHEMA_MIGRATION_REQUIRED",
     exitCode: 1,
     details: {
@@ -163,7 +163,7 @@ function getUserPath(profileName) {
 }
 
 module.exports = {
-  bootstrapSleHome,
+  bootstrapSlaHome,
   ensureSchemaReady,
   ensureProfileScaffold,
 };

@@ -1,5 +1,5 @@
 const fs = require("node:fs/promises");
-const { SLEError } = require("./errors");
+const { SLAError } = require("./errors");
 const { withFileLock, writeFileAtomic } = require("./filesystem");
 const { getMemoryStorePath } = require("./paths");
 const { resolveExistingProfile } = require("./profiles");
@@ -51,7 +51,7 @@ async function viewMemoryTarget(requestedName, target) {
 async function addMemoryEntry(requestedName, target, entry) {
   return mutateMemoryTarget(requestedName, target, "add", (entries, normalizedEntry) => {
     if (entries.some((currentEntry) => currentEntry === normalizedEntry)) {
-      throw new SLEError("That memory entry already exists in the selected target.", {
+      throw new SLAError("That memory entry already exists in the selected target.", {
         code: "MEMORY_ENTRY_ALREADY_EXISTS",
         exitCode: 2,
         details: { target, entry: normalizedEntry },
@@ -75,7 +75,7 @@ async function replaceMemoryEntry(requestedName, target, match, entry) {
       if (
         entries.some((currentEntry, index) => currentEntry === normalizedEntry && index !== matchResult.index)
       ) {
-        throw new SLEError("That replacement would create a duplicate memory entry.", {
+        throw new SLAError("That replacement would create a duplicate memory entry.", {
           code: "MEMORY_ENTRY_ALREADY_EXISTS",
           exitCode: 2,
           details: { target, entry: normalizedEntry },
@@ -197,7 +197,7 @@ function serializeMemoryTarget(target, entries) {
 function normalizeEntry(entry) {
   const normalized = String(entry).replaceAll("\r\n", "\n").trim();
   if (!normalized) {
-    throw new SLEError("Memory entry content may not be empty.", {
+    throw new SLAError("Memory entry content may not be empty.", {
       code: "INVALID_MEMORY_ENTRY",
       exitCode: 2,
     });
@@ -212,7 +212,7 @@ function findSingleMatch(entries, match, target) {
     .filter(({ entry }) => entry.includes(match));
 
   if (matches.length === 0) {
-    throw new SLEError("No memory entry matched the provided text.", {
+    throw new SLAError("No memory entry matched the provided text.", {
       code: "MEMORY_ENTRY_NOT_FOUND",
       exitCode: 1,
       details: { target, match },
@@ -220,7 +220,7 @@ function findSingleMatch(entries, match, target) {
   }
 
   if (matches.length > 1) {
-    throw new SLEError("Multiple memory entries matched the provided text.", {
+    throw new SLAError("Multiple memory entries matched the provided text.", {
       code: "MEMORY_ENTRY_AMBIGUOUS",
       exitCode: 1,
       details: {

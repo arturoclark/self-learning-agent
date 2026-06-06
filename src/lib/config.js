@@ -1,5 +1,5 @@
 const fs = require("node:fs/promises");
-const { SLEError } = require("./errors");
+const { SLAError } = require("./errors");
 const { CURRENT_SCHEMA_VERSION, DEFAULT_PROFILE_NAME } = require("./constants");
 const { getConfigPath } = require("./paths");
 const { pathExists, writeFileAtomic } = require("./filesystem");
@@ -24,7 +24,7 @@ async function loadConfig() {
     const raw = await fs.readFile(configPath, "utf8");
     parsed = JSON.parse(raw);
   } catch (error) {
-    throw new SLEError("The SLE config file is invalid and could not be read.", {
+    throw new SLAError("The SLA config file is invalid and could not be read.", {
       code: "INVALID_CONFIG",
       exitCode: 1,
       details: { configPath, reason: error.message },
@@ -36,7 +36,7 @@ async function loadConfig() {
 
 function normalizeConfig(config) {
   if (!config || typeof config !== "object" || Array.isArray(config)) {
-    throw new SLEError("The SLE config file must contain a JSON object.", {
+    throw new SLAError("The SLA config file must contain a JSON object.", {
       code: "INVALID_CONFIG",
       exitCode: 1,
     });

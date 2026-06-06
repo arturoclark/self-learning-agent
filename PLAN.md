@@ -1,8 +1,8 @@
-# Build `sle`: Profile-Scoped Memory and Skills CLI for Agents
+# Build `sla`: Profile-Scoped Memory and Skills CLI for Agents
 
 ## Summary
 
-Build a Node.js CLI, in plain JavaScript, that manages agent profiles under `~/.sle/` using Hermes-inspired patterns:
+Build a Node.js CLI, in plain JavaScript, that manages agent profiles under `~/.sla/` using Hermes-inspired patterns:
 
 - facts in bounded profile memory files
 - procedures in filesystem-native skill directories
@@ -19,7 +19,7 @@ The first implementation will support local profile management end to end, Codex
 Use this home layout:
 
 ```text
-~/.sle/
+~/.sla/
   config.json
   default/
     SOUL.md
@@ -70,72 +70,72 @@ Operational rules:
 
 ### CLI surface
 
-Plan the CLI as `sle`, implemented with `commander`.
+Plan the CLI as `sla`, implemented with `commander`.
 
 Core commands:
 
-- `sle install`
-  Creates `~/.sle`, writes global config, creates the default profile, and bootstraps the required directory and file structure.
-- `sle help [command]`
+- `sla install`
+  Creates `~/.sla`, writes global config, creates the default profile, and bootstraps the required directory and file structure.
+- `sla help [command]`
   Shows top-level help or command-specific help, including examples and default-profile behavior.
-- `sle profile create <name>`
+- `sla profile create <name>`
   Creates a new named profile with `SOUL.md`, `memories/`, `skills/`, and initial sidecar files.
-- `sle profile update [name]`
+- `sla profile update [name]`
   Updates profile-level metadata or scaffolded files for an existing profile; if no name is given, uses the default profile.
-- `sle profile delete <name> --yes`
+- `sla profile delete <name> --yes`
   Permanently deletes a profile after explicit confirmation, with safeguards around deleting the current default profile.
-- `sle profile list`
+- `sla profile list`
   Lists all profiles and indicates which one is currently the default.
-- `sle profile dir [name]`
+- `sla profile dir [name]`
   Prints the absolute filesystem path for the selected profile.
-- `sle profile set-default <name>`
+- `sla profile set-default <name>`
   Sets the named profile as the default profile in global config.
-- `sle profile get-default`
+- `sla profile get-default`
   Prints the current default profile name.
-- `sle soul view [name]`
+- `sla soul view [name]`
   Prints the profile’s `SOUL.md` content.
-- `sle soul edit [name] --file <path>` or `--stdin`
+- `sla soul edit [name] --file <path>` or `--stdin`
   Replaces or updates the profile’s `SOUL.md` from file input or piped stdin.
-- `sle memory list [name]`
+- `sla memory list [name]`
   Lists memory entries across the profile’s built-in memory stores, with enough summary to inspect what is stored.
-- `sle memory add [name] --target memory|user`
+- `sla memory add [name] --target memory|user`
   Adds a new entry to `MEMORY.md` or `USER.md` for the selected profile.
-- `sle memory replace [name] --target memory|user`
+- `sla memory replace [name] --target memory|user`
   Replaces an existing matching memory entry in the chosen memory target.
-- `sle memory remove [name] --target memory|user`
+- `sla memory remove [name] --target memory|user`
   Removes an existing matching memory entry from the chosen memory target.
-- `sle memory view [name] --target memory|user`
+- `sla memory view [name] --target memory|user`
   Prints the raw contents or parsed entries of one built-in memory target.
-- `sle skill list [name]`
+- `sla skill list [name]`
   Lists installed skills for the profile using metadata-only summaries.
-- `sle skill view <skill> [name]`
+- `sla skill view <skill> [name]`
   Shows the full `SKILL.md` for a named skill, and optionally later support-file access if expanded.
-- `sle skill create <skill> [name]`
+- `sla skill create <skill> [name]`
   Creates a new skill directory and starter `SKILL.md` for the selected profile.
-- `sle skill edit <skill> [name]`
+- `sla skill edit <skill> [name]`
   Replaces or updates the `SKILL.md` content for an existing skill.
-- `sle skill delete <skill> [name] --yes`
+- `sla skill delete <skill> [name] --yes`
   Deletes a skill directory after explicit confirmation.
-- `sle skill write-file <skill> --subdir references|templates|scripts|assets --path <relative-path>`
+- `sla skill write-file <skill> --subdir references|templates|scripts|assets --path <relative-path>`
   Writes a managed support file inside one of the allowed skill subdirectories.
-- `sle skill remove-file <skill> --path <relative-path> --yes`
+- `sla skill remove-file <skill> --path <relative-path> --yes`
   Removes a managed support file from a skill after explicit confirmation.
-- `sle stats`
+- `sla stats`
   Shows global system metrics across all profiles, including counts and recent activity.
-- `sle stats profile [name]`
+- `sla stats profile [name]`
   Shows detailed metrics for one profile, including soul, memory, and skill activity.
-- `sle host install codex`
-  Installs Codex-facing skills that teach the agent how to operate on `sle` profiles through this CLI.
-- `sle host list`
+- `sla host install codex`
+  Installs Codex-facing skills that teach the agent how to operate on `sla` profiles through this CLI.
+- `sla host list`
   Lists supported host integrations and whether they are installed.
 
 Help behavior:
 
-- `sle help` prints top-level usage, major concepts, and key examples
-- `sle help <command>` prints focused help for that command path
+- `sla help` prints top-level usage, major concepts, and key examples
+- `sla help <command>` prints focused help for that command path
 - help output includes curated examples so agents can find the right command without external docs
 - help output includes profile-resolution rules and default-profile behavior where relevant
-- `-h` and `--help` still work through `commander`, but `sle help` is the documented stable interface for users and agents
+- `-h` and `--help` still work through `commander`, but `sla help` is the documented stable interface for users and agents
 
 Resolution rules:
 
@@ -152,7 +152,7 @@ Profile lifecycle policy:
 
 ### Installed agent skills
 
-Install Codex-hosted skills as thin wrappers that instruct the agent to use `sle` commands.
+Install Codex-hosted skills as thin wrappers that instruct the agent to use `sla` commands.
 
 First installed skills:
 
@@ -162,7 +162,7 @@ First installed skills:
 
 Behavior:
 
-- `/use-profile {profile}` tells the agent to read from and write to that `sle` profile during the session
+- `/use-profile {profile}` tells the agent to read from and write to that `sla` profile during the session
 - `/create-profile` scaffolds a profile and captures explicit user intent into `SOUL.md`; no automatic synthesis in v1
 - `/update-profile` updates `SOUL.md`, memories, or skills for the named profile, defaulting to the configured default when omitted
 
@@ -186,22 +186,22 @@ What this achieves:
 Create the Node package, executable entrypoint, command parser, help system, error model, JSON output conventions, and a small internal module layout that keeps storage logic separate from command handlers.
 
 Results:
-- runnable `sle` executable from local dev
+- runnable `sla` executable from local dev
 - consistent help output and subcommand structure
-- explicit `sle help` command wired to the same command registry as `commander`
+- explicit `sla help` command wired to the same command registry as `commander`
 - shared utilities for path resolution, profile resolution, validation, JSON output, and formatted CLI output
 - curated example snippets embedded in help text
 - test harness for command-level integration tests
 
-### Step 2: `~/.sle` install, config, and schema management [DONE]
+### Step 2: `~/.sla` install, config, and schema management [DONE]
 
 What this achieves:
 Initialize the application home, global config, schema version, and default profile so the system has a stable source of truth from the first run.
 
 Results:
-- `sle install` creates `~/.sle/`
+- `sla install` creates `~/.sla/`
 - writes `config.json` with `schemaVersion`, `defaultProfile`, and host-install metadata container
-- creates `~/.sle/default/`
+- creates `~/.sla/default/`
 - creates `SOUL.md`, `memories/MEMORY.md`, `memories/USER.md`, `skills/`, and `skills/.usage.json`
 - startup checks schema version and routes through a migration hook
 - install is idempotent and safe to rerun
@@ -212,7 +212,7 @@ What this achieves:
 Let users create, inspect, select, and remove named profiles cleanly, with explicit default-profile handling and no ambiguous behavior.
 
 Results:
-- create named profiles under `~/.sle/<name>/`
+- create named profiles under `~/.sla/<name>/`
 - list existing profiles and identify the default
 - return absolute path for a profile directory
 - set and get the default profile through `config.json`
@@ -279,15 +279,15 @@ Results:
 ### Step 8: Codex host installer and adapter abstraction [DONE]
 
 What this achieves:
-Install thin integration skills so agents in Codex can operate on `sle` profiles using CLI commands instead of manual filesystem conventions, while setting the design boundary for future hosts.
+Install thin integration skills so agents in Codex can operate on `sla` profiles using CLI commands instead of manual filesystem conventions, while setting the design boundary for future hosts.
 
 Results:
-- `sle host install codex` installs the starter skills into the Codex skill location
+- `sla host install codex` installs the starter skills into the Codex skill location
 - installed skills include `/use-profile`, `/create-profile`, and `/update-profile`
-- skill content explicitly tells the agent to use `sle` commands for profile reads and writes
+- skill content explicitly tells the agent to use `sla` commands for profile reads and writes
 - installation is idempotent and tracked in global config
 - host adapter interface is implemented and Codex conforms to it
-- `sle host list` reports adapter availability and installation status
+- `sla host list` reports adapter availability and installation status
 
 ### Step 9: Hardening, packaging, and npm release readiness [DONE]
 
@@ -302,19 +302,19 @@ Results:
 - publish artifact validation checks tarball contents so tests, local fixtures, and unrelated files are not leaked
 - package metadata values are collected from the user during implementation before release files are finalized
 - `npm pack` succeeds and produces a correct tarball
-- tarball install smoke test confirms the `sle` binary works after global or local package install
+- tarball install smoke test confirms the `sla` binary works after global or local package install
 - package is ready for `npm publish`
-- README includes install, bootstrap, help, JSON output, and release-oriented quickstart guidance centered on `sle help`
+- README includes install, bootstrap, help, JSON output, and release-oriented quickstart guidance centered on `sla help`
 
 ## Test Plan
 
 Cover these scenarios:
 
-- fresh `sle install` on a clean machine
-- rerunning `sle install` without duplicating or corrupting state
+- fresh `sla install` on a clean machine
+- rerunning `sla install` without duplicating or corrupting state
 - schema version mismatch routes through the migration guard
-- `sle help` top-level output
-- `sle help profile create` and equivalent command-path help output
+- `sla help` top-level output
+- `sla help profile create` and equivalent command-path help output
 - creating multiple profiles and switching default
 - omitting profile name and correctly falling back to default
 - refusing operations when no default exists
@@ -330,7 +330,7 @@ Cover these scenarios:
 - `--json` output shape for profile, memory, skill, stats, and host commands
 - Codex host install on first run and re-run
 - installed `/use-profile` workflow correctly points the session at the chosen profile by instruction
-- `npm pack` output installs cleanly and exposes the `sle` binary
+- `npm pack` output installs cleanly and exposes the `sla` binary
 - published-package dry run verifies required files are present and unexpected files are absent
 - invalid profile names, missing skills, and ambiguous references fail without guessing
 
@@ -361,5 +361,5 @@ If any of these are missing, stop and ask rather than guessing.
 - stats include usage telemetry, not just raw filesystem counts
 - Codex is the only concrete host installer in v1
 - profile omission always means “use default profile”
-- global state lives in `~/.sle/config.json`; profile state lives inside each profile directory
+- global state lives in `~/.sla/config.json`; profile state lives inside each profile directory
 - npm publish happens only after package metadata has been explicitly provided by the user

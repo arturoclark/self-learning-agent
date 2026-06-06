@@ -1,4 +1,4 @@
-const { SLEError } = require("../lib/errors");
+const { SLAError } = require("../lib/errors");
 
 function registerHelpCommand(program) {
   program
@@ -8,7 +8,7 @@ function registerHelpCommand(program) {
     .action((commandPath) => {
       const target = resolveCommand(program, commandPath || []);
       if (!target) {
-        throw new SLEError("Unknown command path.", {
+        throw new SLAError("Unknown command path.", {
           code: "UNKNOWN_COMMAND",
           exitCode: 2,
           details: { commandPath },

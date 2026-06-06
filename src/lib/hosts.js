@@ -1,81 +1,81 @@
 const fs = require("node:fs/promises");
 const { saveConfig } = require("./config");
-const { SLEError } = require("./errors");
+const { SLAError } = require("./errors");
 const { ensureDirectory, pathExists, writeFileAtomic } = require("./filesystem");
 const { requireConfig } = require("./profiles");
 const { getCodexAgentPath, getCodexSkillPath, getCodexSkillsPath } = require("./paths");
 
 const CODEX_SKILLS = [
   {
-    key: "sle-use-profile",
+    key: "sla-use-profile",
     command: "/use-profile",
-    shortDescription: "Work inside a chosen sle profile",
-    defaultPrompt: "Use $sle-use-profile to set and use the requested sle profile: <task>.",
+    shortDescription: "Work inside a chosen sla profile",
+    defaultPrompt: "Use $sla-use-profile to set and use the requested sla profile: <task>.",
     skillMarkdown: `---
-name: sle-use-profile
-description: Use \`sle\` commands to switch the session to a named profile and keep later work scoped to it.
+name: sla-use-profile
+description: Use \`sla\` commands to switch the session to a named profile and keep later work scoped to it.
 ---
 
 # Use Profile
 
 ## Overview
 
-Use this skill when the user asks to switch to a specific \`sle\` profile for the current task.
+Use this skill when the user asks to switch to a specific \`sla\` profile for the current task.
 
 ## Workflow
 
 1. Determine the exact profile name from the user request. If no exact name is available, say: \`I don't know, help me get more context\`.
-2. Run \`sle profile dir <name>\` to verify the profile exists and capture its absolute path.
-3. Run \`sle soul view <name>\` to read the profile purpose before making changes.
-4. Use \`sle memory ... <name>\`, \`sle skill ... <name>\`, \`sle soul ... <name>\`, and \`sle stats profile <name>\` for profile-scoped reads and writes.
-5. State that the session is now operating against that profile and keep subsequent \`sle\` commands scoped to it until the user changes profiles again.
+2. Run \`sla profile dir <name>\` to verify the profile exists and capture its absolute path.
+3. Run \`sla soul view <name>\` to read the profile purpose before making changes.
+4. Use \`sla memory ... <name>\`, \`sla skill ... <name>\`, \`sla soul ... <name>\`, and \`sla stats profile <name>\` for profile-scoped reads and writes.
+5. State that the session is now operating against that profile and keep subsequent \`sla\` commands scoped to it until the user changes profiles again.
 
 ## Operating Rules
 
-- Prefer \`sle\` commands over direct filesystem edits for anything under \`~/.sle\`.
+- Prefer \`sla\` commands over direct filesystem edits for anything under \`~/.sla\`.
 - Do not guess profile names.
 - If the profile lookup fails or the user request is ambiguous, say: \`I don't know, help me get more context\`.
 `,
   },
   {
-    key: "sle-create-profile",
+    key: "sla-create-profile",
     command: "/create-profile",
-    shortDescription: "Create a new sle profile through the CLI",
-    defaultPrompt: "Use $sle-create-profile to create an sle profile for this request: <task>.",
+    shortDescription: "Create a new sla profile through the CLI",
+    defaultPrompt: "Use $sla-create-profile to create an sla profile for this request: <task>.",
     skillMarkdown: `---
-name: sle-create-profile
-description: Create a new \`sle\` profile and capture explicit user intent with CLI commands.
+name: sla-create-profile
+description: Create a new \`sla\` profile and capture explicit user intent with CLI commands.
 ---
 
 # Create Profile
 
 ## Overview
 
-Use this skill when the user wants a new \`sle\` profile.
+Use this skill when the user wants a new \`sla\` profile.
 
 ## Workflow
 
 1. Identify the exact profile name and the user-provided purpose for the profile. If either is missing, say: \`I don't know, help me get more context\`.
-2. Run \`sle profile create <name>\` to scaffold the profile.
-3. Run \`sle soul edit <name> --stdin\` or \`sle soul edit <name> --file <path>\` to write the user-approved \`SOUL.md\` content.
-4. Add durable facts with \`sle memory add <name> --target memory|user --entry "..."\` only when the user has explicitly provided them.
+2. Run \`sla profile create <name>\` to scaffold the profile.
+3. Run \`sla soul edit <name> --stdin\` or \`sla soul edit <name> --file <path>\` to write the user-approved \`SOUL.md\` content.
+4. Add durable facts with \`sla memory add <name> --target memory|user --entry "..."\` only when the user has explicitly provided them.
 5. Confirm the created profile name and path by using CLI output rather than describing the filesystem from memory.
 
 ## Operating Rules
 
 - Do not synthesize profile intent beyond what the user explicitly states.
-- Prefer \`sle\` commands over direct filesystem edits for \`~/.sle\`.
+- Prefer \`sla\` commands over direct filesystem edits for \`~/.sla\`.
 - If the required name or purpose is missing, say: \`I don't know, help me get more context\`.
 `,
   },
   {
-    key: "sle-update-profile",
+    key: "sla-update-profile",
     command: "/update-profile",
-    shortDescription: "Update an sle profile through the CLI",
-    defaultPrompt: "Use $sle-update-profile to update an sle profile for this request: <task>.",
+    shortDescription: "Update an sla profile through the CLI",
+    defaultPrompt: "Use $sla-update-profile to update an sla profile for this request: <task>.",
     skillMarkdown: `---
-name: sle-update-profile
-description: Update an existing \`sle\` profile by using CLI commands for soul, memory, and skill maintenance.
+name: sla-update-profile
+description: Update an existing \`sla\` profile by using CLI commands for soul, memory, and skill maintenance.
 ---
 
 # Update Profile
@@ -86,14 +86,14 @@ Use this skill when the user wants to change a profile's \`SOUL.md\`, memories, 
 
 ## Workflow
 
-1. Resolve the target profile exactly. If it is omitted, use \`sle profile get-default\`; if that still leaves the task ambiguous, say: \`I don't know, help me get more context\`.
-2. Inspect current state with \`sle soul view <name>\`, \`sle memory list <name>\`, \`sle skill list <name>\`, or \`sle stats profile <name>\` before changing anything material.
-3. Apply updates with the relevant \`sle\` commands such as \`sle soul edit\`, \`sle memory add|replace|remove\`, \`sle skill create|edit|delete\`, or \`sle skill write-file|remove-file\`.
+1. Resolve the target profile exactly. If it is omitted, use \`sla profile get-default\`; if that still leaves the task ambiguous, say: \`I don't know, help me get more context\`.
+2. Inspect current state with \`sla soul view <name>\`, \`sla memory list <name>\`, \`sla skill list <name>\`, or \`sla stats profile <name>\` before changing anything material.
+3. Apply updates with the relevant \`sla\` commands such as \`sla soul edit\`, \`sla memory add|replace|remove\`, \`sla skill create|edit|delete\`, or \`sla skill write-file|remove-file\`.
 4. Report the concrete CLI-backed changes and keep future work scoped to that same profile unless the user changes targets.
 
 ## Operating Rules
 
-- Do not edit \`~/.sle\` directly when an \`sle\` command exists.
+- Do not edit \`~/.sla\` directly when an \`sla\` command exists.
 - Do not guess missing profile names or missing content.
 - If the target profile or requested update is unclear, say: \`I don't know, help me get more context\`.
 `,
@@ -110,7 +110,7 @@ function getHostAdapter(hostName) {
     return adapter;
   }
 
-  throw new SLEError(`Host '${hostName}' is not supported.`, {
+  throw new SLAError(`Host '${hostName}' is not supported.`, {
     code: "HOST_NOT_SUPPORTED",
     exitCode: 2,
     details: {

@@ -1,6 +1,6 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
-const { SLEError } = require("./errors");
+const { SLAError } = require("./errors");
 const { ensureDirectory, pathExists, withFileLock, writeFileAtomic } = require("./filesystem");
 const { getSkillMarkdownPath, getSkillPath, getSkillsPath } = require("./paths");
 const { resolveExistingProfile } = require("./profiles");
@@ -62,7 +62,7 @@ async function createSkill(skillName, requestedName) {
 
   return withFileLock(lockPath, async () => {
     if (await pathExists(skillPath)) {
-      throw new SLEError(`Skill '${skillName}' already exists in profile '${profileName}'.`, {
+      throw new SLAError(`Skill '${skillName}' already exists in profile '${profileName}'.`, {
         code: "SKILL_ALREADY_EXISTS",
         exitCode: 2,
         details: { profile: profileName, skill: skillName, path: skillPath },
@@ -167,7 +167,7 @@ async function removeSkillFile(skillName, requestedName, relativePath) {
 
   return withFileLock(lockPath, async () => {
     if (!(await pathExists(managedPath.absolutePath))) {
-      throw new SLEError("Managed skill file was not found.", {
+      throw new SLAError("Managed skill file was not found.", {
         code: "SKILL_FILE_NOT_FOUND",
         exitCode: 1,
         details: {
@@ -208,7 +208,7 @@ async function assertSkillExists(profileName, skillName) {
     return skillMarkdownPath;
   }
 
-  throw new SLEError(`Skill '${skillName}' does not exist in profile '${profileName}'.`, {
+  throw new SLAError(`Skill '${skillName}' does not exist in profile '${profileName}'.`, {
     code: "SKILL_NOT_FOUND",
     exitCode: 1,
     details: { profile: profileName, skill: skillName, path: skillMarkdownPath },
@@ -238,7 +238,7 @@ function validateSkillContent(raw) {
 function parseSkillContent(raw) {
   const normalized = normalizeDocumentContent(raw, "Skill content may not be empty.", "INVALID_SKILL_CONTENT");
   if (!normalized.startsWith(`${FRONTMATTER_DELIMITER}\n`)) {
-    throw new SLEError("SKILL.md must start with YAML frontmatter.", {
+    throw new SLAError("SKILL.md must start with YAML frontmatter.", {
       code: "INVALID_SKILL_FRONTMATTER",
       exitCode: 2,
     });
@@ -246,7 +246,7 @@ function parseSkillContent(raw) {
 
   const delimiterIndex = normalized.indexOf(`\n${FRONTMATTER_DELIMITER}\n`, FRONTMATTER_DELIMITER.length + 1);
   if (delimiterIndex === -1) {
-    throw new SLEError("SKILL.md frontmatter must end with a closing --- line.", {
+    throw new SLAError("SKILL.md frontmatter must end with a closing --- line.", {
       code: "INVALID_SKILL_FRONTMATTER",
       exitCode: 2,
     });
@@ -274,7 +274,7 @@ function parseFrontmatter(frontmatterRaw) {
 
     const separatorIndex = trimmed.indexOf(":");
     if (separatorIndex <= 0) {
-      throw new SLEError("SKILL.md frontmatter must use 'key: value' entries.", {
+      throw new SLAError("SKILL.md frontmatter must use 'key: value' entries.", {
         code: "INVALID_SKILL_FRONTMATTER",
         exitCode: 2,
       });
@@ -286,14 +286,14 @@ function parseFrontmatter(frontmatterRaw) {
   }
 
   if (!metadata.name) {
-    throw new SLEError("SKILL.md frontmatter must include 'name'.", {
+    throw new SLAError("SKILL.md frontmatter must include 'name'.", {
       code: "INVALID_SKILL_FRONTMATTER",
       exitCode: 2,
     });
   }
 
   if (!metadata.description) {
-    throw new SLEError("SKILL.md frontmatter must include 'description'.", {
+    throw new SLAError("SKILL.md frontmatter must include 'description'.", {
       code: "INVALID_SKILL_FRONTMATTER",
       exitCode: 2,
     });
@@ -323,7 +323,7 @@ function resolveManagedExistingPath(skillMarkdownPath, relativePath) {
   assertAllowedSubdir(subdir);
 
   if (segments.length < 2) {
-    throw new SLEError("Managed file paths must include a file inside an allowed subdirectory.", {
+    throw new SLAError("Managed file paths must include a file inside an allowed subdirectory.", {
       code: "INVALID_MANAGED_PATH",
       exitCode: 2,
       details: { value: relativePath },
@@ -341,7 +341,7 @@ function normalizeManagedPath(relativePath) {
   const segments = normalized.split("/").filter(Boolean);
 
   if (segments.length === 0 || segments.includes("..") || segments.includes(".")) {
-    throw new SLEError("Managed file paths may not escape the skill directory.", {
+    throw new SLAError("Managed file paths may not escape the skill directory.", {
       code: "INVALID_MANAGED_PATH",
       exitCode: 2,
       details: { value: relativePath },
@@ -353,7 +353,7 @@ function normalizeManagedPath(relativePath) {
 
 function assertAllowedSubdir(subdir) {
   if (!ALLOWED_MANAGED_SUBDIRS.has(subdir)) {
-    throw new SLEError("Managed files must live inside references, templates, scripts, or assets.", {
+    throw new SLAError("Managed files must live inside references, templates, scripts, or assets.", {
       code: "INVALID_SKILL_SUBDIR",
       exitCode: 2,
       details: { value: subdir },
@@ -366,7 +366,7 @@ function resolveContentSource(options = {}, code) {
   const hasStdin = Boolean(options.stdin);
 
   if (hasFile === hasStdin) {
-    throw new SLEError("Provide exactly one input source: --file or --stdin.", {
+    throw new SLAError("Provide exactly one input source: --file or --stdin.", {
       code,
       exitCode: 2,
       details: {
@@ -399,7 +399,7 @@ async function readContentSource(source) {
 function normalizeDocumentContent(content, message, code) {
   const normalized = String(content).replaceAll("\r\n", "\n").trim();
   if (!normalized) {
-    throw new SLEError(message, {
+    throw new SLAError(message, {
       code,
       exitCode: 2,
     });

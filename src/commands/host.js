@@ -9,7 +9,7 @@ function registerHostCommands(program) {
     .command("install")
     .argument("<host>", "Host integration name.")
     .description("Install host-facing wrappers.")
-    .addHelpText("after", attachExamples(["sle host install codex"]))
+    .addHelpText("after", attachExamples(["sla host install codex"]))
     .action(async (...args) => {
       const hostName = args[0];
       const command = args.at(-1);
@@ -30,7 +30,7 @@ function registerHostCommands(program) {
   host
     .command("list")
     .description("List supported host integrations and installation status.")
-    .addHelpText("after", attachExamples(["sle host list", "sle host list --json"]))
+    .addHelpText("after", attachExamples(["sla host list", "sla host list --json"]))
     .action(async (...args) => {
       const command = args.at(-1);
       const result = await listHosts();

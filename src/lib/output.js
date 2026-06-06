@@ -1,4 +1,4 @@
-const { SLEError } = require("./errors");
+const { SLAError } = require("./errors");
 
 function writeResult(command, payload, options = {}) {
   const opts = command.optsWithGlobals ? command.optsWithGlobals() : {};
@@ -40,7 +40,7 @@ function formatError(error, program) {
     };
   }
 
-  if (error instanceof SLEError) {
+  if (error instanceof SLAError) {
     return {
       stream: "stderr",
       exitCode: error.exitCode,

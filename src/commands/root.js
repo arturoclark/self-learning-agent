@@ -14,7 +14,7 @@ function buildRootCommand() {
   const program = new Command();
 
   program
-    .name("sle")
+    .name("sla")
     .description("Profile-scoped memory and skills CLI for agents.")
     .helpCommand(false)
     .showHelpAfterError("(use --help for usage)")
@@ -35,10 +35,10 @@ function buildRootCommand() {
     .addHelpText(
       "after",
       attachExamples([
-        "sle install",
-        "sle profile list",
-        "sle help skill create",
-        "sle memory add default --target memory --entry \"The API runs in us-east-1\"",
+        "sla install",
+        "sla profile list",
+        "sla help skill create",
+        "sla memory add default --target memory --entry \"The API runs in us-east-1\"",
       ]),
     )
     .action(() => {

@@ -19,7 +19,7 @@ function registerProfileCommands(program) {
     .command("create")
     .argument("<name>", "Profile name.", validateProfileName)
     .description("Create a named profile.")
-    .addHelpText("after", attachExamples(["sle profile create research"]))
+    .addHelpText("after", attachExamples(["sla profile create research"]))
     .action(async (...args) => {
       const name = args[0];
       const command = args.at(-1);
@@ -45,7 +45,7 @@ function registerProfileCommands(program) {
     .command("update")
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("Update metadata or scaffolded files for a profile.")
-    .addHelpText("after", attachExamples(["sle profile update", "sle profile update research"]))
+    .addHelpText("after", attachExamples(["sla profile update", "sla profile update research"]))
     .action((...args) =>
       notImplemented(
         args.at(-1),
@@ -59,7 +59,7 @@ function registerProfileCommands(program) {
     .argument("<name>", "Profile name.", validateProfileName)
     .requiredOption("--yes", "Confirm permanent deletion.")
     .description("Delete a named profile.")
-    .addHelpText("after", attachExamples(["sle profile delete research --yes"]))
+    .addHelpText("after", attachExamples(["sla profile delete research --yes"]))
     .action(async (...args) => {
       const name = args[0];
       const command = args.at(-1);
@@ -80,7 +80,7 @@ function registerProfileCommands(program) {
   profile
     .command("list")
     .description("List profiles and indicate the default.")
-    .addHelpText("after", attachExamples(["sle profile list", "sle profile list --json"]))
+    .addHelpText("after", attachExamples(["sla profile list", "sla profile list --json"]))
     .action(async (...args) => {
       const command = args.at(-1);
       const result = await listProfiles();
@@ -107,7 +107,7 @@ function registerProfileCommands(program) {
     .command("dir")
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("Print the absolute path for a profile.")
-    .addHelpText("after", attachExamples(["sle profile dir", "sle profile dir research"]))
+    .addHelpText("after", attachExamples(["sla profile dir", "sla profile dir research"]))
     .action(async (...args) => {
       const name = args[0];
       const command = args.at(-1);
@@ -132,7 +132,7 @@ function registerProfileCommands(program) {
     .command("set-default")
     .argument("<name>", "Profile name.", validateProfileName)
     .description("Set the default profile.")
-    .addHelpText("after", attachExamples(["sle profile set-default research"]))
+    .addHelpText("after", attachExamples(["sla profile set-default research"]))
     .action(async (...args) => {
       const name = args[0];
       const command = args.at(-1);
@@ -153,7 +153,7 @@ function registerProfileCommands(program) {
   profile
     .command("get-default")
     .description("Print the default profile name.")
-    .addHelpText("after", attachExamples(["sle profile get-default"]))
+    .addHelpText("after", attachExamples(["sla profile get-default"]))
     .action(async (...args) => {
       const command = args.at(-1);
       const defaultProfile = await getDefaultProfile();

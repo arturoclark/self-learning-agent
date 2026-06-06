@@ -16,7 +16,7 @@ function registerMemoryCommands(program) {
     .command("list")
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("List memory entries across built-in memory stores.")
-    .addHelpText("after", attachExamples(["sle memory list", "sle memory list research --json"]))
+    .addHelpText("after", attachExamples(["sla memory list", "sla memory list research --json"]))
     .action(async (...args) => {
       const name = args[0];
       const command = args.at(-1);
@@ -44,7 +44,7 @@ function registerMemoryCommands(program) {
     .requiredOption("--target <target>", "Memory target: memory or user.", validateMemoryTarget)
     .requiredOption("--entry <text>", "Entry text to add.")
     .description("Add a new memory entry.")
-    .addHelpText("after", attachExamples(["sle memory add research --target memory --entry \"Postgres runs locally\""]))
+    .addHelpText("after", attachExamples(["sla memory add research --target memory --entry \"Postgres runs locally\""]))
     .action(async (...args) => {
       const name = args[0];
       const options = args[1];
@@ -68,7 +68,7 @@ function registerMemoryCommands(program) {
     .requiredOption("--match <text>", "Entry text to replace.")
     .requiredOption("--entry <text>", "Replacement entry text.")
     .description("Replace a matching memory entry.")
-    .addHelpText("after", attachExamples(["sle memory replace research --target user --match \"Prefers Vim\" --entry \"Prefers Helix\""]))
+    .addHelpText("after", attachExamples(["sla memory replace research --target user --match \"Prefers Vim\" --entry \"Prefers Helix\""]))
     .action(async (...args) => {
       const name = args[0];
       const options = args[1];
@@ -91,7 +91,7 @@ function registerMemoryCommands(program) {
     .requiredOption("--target <target>", "Memory target: memory or user.", validateMemoryTarget)
     .requiredOption("--match <text>", "Entry text to remove.")
     .description("Remove a matching memory entry.")
-    .addHelpText("after", attachExamples(["sle memory remove research --target memory --match \"Old endpoint\""]))
+    .addHelpText("after", attachExamples(["sla memory remove research --target memory --match \"Old endpoint\""]))
     .action(async (...args) => {
       const name = args[0];
       const options = args[1];
@@ -113,7 +113,7 @@ function registerMemoryCommands(program) {
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .requiredOption("--target <target>", "Memory target: memory or user.", validateMemoryTarget)
     .description("Print raw or parsed contents for a memory target.")
-    .addHelpText("after", attachExamples(["sle memory view research --target memory"]))
+    .addHelpText("after", attachExamples(["sla memory view research --target memory"]))
     .action(async (...args) => {
       const name = args[0];
       const options = args[1];

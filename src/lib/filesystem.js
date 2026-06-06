@@ -1,6 +1,6 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
-const { SLEError } = require("./errors");
+const { SLAError } = require("./errors");
 
 async function pathExists(targetPath) {
   try {
@@ -62,7 +62,7 @@ async function withFileLock(lockPath, operation, options = {}) {
       }
 
       if (Date.now() - startedAt >= timeoutMs) {
-        throw new SLEError("Timed out waiting for an internal file lock.", {
+        throw new SLAError("Timed out waiting for an internal file lock.", {
           code: "LOCK_TIMEOUT",
           exitCode: 1,
           details: { lockPath, timeoutMs },

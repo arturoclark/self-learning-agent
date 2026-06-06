@@ -18,7 +18,7 @@ function registerSkillCommands(program) {
     .command("list")
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("List skills for a profile.")
-    .addHelpText("after", attachExamples(["sle skill list", "sle skill list research --json"]))
+    .addHelpText("after", attachExamples(["sla skill list", "sla skill list research --json"]))
     .action(async (...args) => {
       const name = args[0];
       const command = args.at(-1);
@@ -43,7 +43,7 @@ function registerSkillCommands(program) {
     .argument("<skill>", "Skill name.", validateSkillName)
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("Show a skill SKILL.md.")
-    .addHelpText("after", attachExamples(["sle skill view deploy", "sle skill view deploy research"]))
+    .addHelpText("after", attachExamples(["sla skill view deploy", "sla skill view deploy research"]))
     .action(async (...args) => {
       const skillName = args[0];
       const name = args[1];
@@ -65,7 +65,7 @@ function registerSkillCommands(program) {
     .argument("<skill>", "Skill name.", validateSkillName)
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("Create a new skill.")
-    .addHelpText("after", attachExamples(["sle skill create deploy", "sle skill create deploy research"]))
+    .addHelpText("after", attachExamples(["sla skill create deploy", "sla skill create deploy research"]))
     .action(async (...args) => {
       const skillName = args[0];
       const name = args[1];
@@ -89,7 +89,7 @@ function registerSkillCommands(program) {
     .option("--file <path>", "Read replacement content from a file.")
     .option("--stdin", "Read replacement content from stdin.")
     .description("Replace or update a SKILL.md.")
-    .addHelpText("after", attachExamples(["sle skill edit deploy research --file ./SKILL.md", "cat SKILL.md | sle skill edit deploy --stdin"]))
+    .addHelpText("after", attachExamples(["sla skill edit deploy research --file ./SKILL.md", "cat SKILL.md | sla skill edit deploy --stdin"]))
     .action(async (...args) => {
       const skillName = args[0];
       const name = args[1];
@@ -113,7 +113,7 @@ function registerSkillCommands(program) {
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .requiredOption("--yes", "Confirm permanent deletion.")
     .description("Delete a skill.")
-    .addHelpText("after", attachExamples(["sle skill delete deploy research --yes"]))
+    .addHelpText("after", attachExamples(["sla skill delete deploy research --yes"]))
     .action(async (...args) => {
       const skillName = args[0];
       const name = args[1];
@@ -139,7 +139,7 @@ function registerSkillCommands(program) {
     .option("--file <path>", "Read file content from a file.")
     .option("--stdin", "Read file content from stdin.")
     .description("Write a managed skill support file.")
-    .addHelpText("after", attachExamples(["sle skill write-file deploy research --subdir scripts --path check.sh --file ./check.sh", "cat check.sh | sle skill write-file deploy --subdir scripts --path check.sh --stdin"]))
+    .addHelpText("after", attachExamples(["sla skill write-file deploy research --subdir scripts --path check.sh --file ./check.sh", "cat check.sh | sla skill write-file deploy --subdir scripts --path check.sh --stdin"]))
     .action(async (...args) => {
       const skillName = args[0];
       const name = args[1];
@@ -164,7 +164,7 @@ function registerSkillCommands(program) {
     .requiredOption("--path <relativePath>", "Relative path inside the skill directory.", validateRelativeManagedPath)
     .requiredOption("--yes", "Confirm permanent deletion.")
     .description("Remove a managed skill support file.")
-    .addHelpText("after", attachExamples(["sle skill remove-file deploy research --path scripts/check.sh --yes"]))
+    .addHelpText("after", attachExamples(["sla skill remove-file deploy research --path scripts/check.sh --yes"]))
     .action(async (...args) => {
       const skillName = args[0];
       const name = args[1];
