@@ -221,7 +221,7 @@ Results:
 - rename remains intentionally unimplemented in v1, with that restriction documented in help and README
 - profile names are validated and normalized consistently
 
-### Step 4: SOUL management
+### Step 4: SOUL management [DONE]
 
 What this achieves:
 Make each profile’s purpose explicit and editable so agents can understand the profile’s role before interacting with its memories and skills.

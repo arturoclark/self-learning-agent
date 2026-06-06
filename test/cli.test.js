@@ -10,6 +10,7 @@ const cliPath = path.join(__dirname, "..", "bin", "sle.js");
 function run(args, options = {}) {
   return spawnSync(process.execPath, [cliPath, ...args], {
     encoding: "utf8",
+    input: options.input,
     env: {
       ...process.env,
       ...options.env,
@@ -193,6 +194,65 @@ test("deletes a non-default profile with explicit confirmation", async () => {
   assert.equal(parsed.data.deletedProfile, "research");
 
   await assert.rejects(fs.access(path.join(sleHome, "research")));
+});
+
+test("views and edits soul content from file and stdin", async () => {
+  const sleHome = await createInstalledSleHome();
+  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+
+  const initialView = run(["soul", "view", "research", "--json"], { env: { SLE_HOME: sleHome } });
+  assert.equal(initialView.status, 0);
+  assert.deepEqual(JSON.parse(initialView.stdout), {
+    ok: true,
+    data: {
+      profile: "research",
+      path: path.join(sleHome, "research", "SOUL.md"),
+      raw: "# SOUL\n",
+    },
+  });
+
+  const sourcePath = path.join(sleHome, "next-soul.md");
+  await fs.writeFile(sourcePath, "# SOUL\n\nResearch profile for infrastructure work.\n", "utf8");
+
+  const fileEdit = run(["soul", "edit", "research", "--file", sourcePath], {
+    env: { SLE_HOME: sleHome },
+  });
+  assert.equal(fileEdit.status, 0);
+  assert.match(fileEdit.stdout, /Updated SOUL\.md for profile 'research'/);
+
+  const stdinEdit = run(["soul", "edit", "--stdin", "--json"], {
+    env: { SLE_HOME: sleHome },
+    input: "# SOUL\n\nDefault profile for quick notes.\n",
+  });
+  assert.equal(stdinEdit.status, 0);
+  const stdinParsed = JSON.parse(stdinEdit.stdout);
+  assert.equal(stdinParsed.ok, true);
+  assert.equal(stdinParsed.data.profile, "default");
+  assert.equal(stdinParsed.data.source, "stdin");
+  assert.equal(stdinParsed.data.raw, "# SOUL\n\nDefault profile for quick notes.\n");
+
+  const researchSoul = await fs.readFile(path.join(sleHome, "research", "SOUL.md"), "utf8");
+  assert.equal(researchSoul, "# SOUL\n\nResearch profile for infrastructure work.\n");
+
+  const defaultSoul = await fs.readFile(path.join(sleHome, "default", "SOUL.md"), "utf8");
+  assert.equal(defaultSoul, "# SOUL\n\nDefault profile for quick notes.\n");
+});
+
+test("requires exactly one soul edit input source", async () => {
+  const sleHome = await createInstalledSleHome();
+  const sourcePath = path.join(sleHome, "next-soul.md");
+  await fs.writeFile(sourcePath, "# SOUL\n\nProfile.\n", "utf8");
+
+  const missingInput = run(["soul", "edit", "--json"], { env: { SLE_HOME: sleHome } });
+  assert.equal(missingInput.status, 2);
+  assert.equal(JSON.parse(missingInput.stdout).error.code, "INVALID_SOUL_INPUT");
+
+  const duplicateInput = run(["soul", "edit", "--file", sourcePath, "--stdin", "--json"], {
+    env: { SLE_HOME: sleHome },
+    input: "# SOUL\n\nConflicting input.\n",
+  });
+  assert.equal(duplicateInput.status, 2);
+  assert.equal(JSON.parse(duplicateInput.stdout).error.code, "INVALID_SOUL_INPUT");
 });
 
 test("adds, lists, views, replaces, and removes memory entries", async () => {

@@ -1,5 +1,6 @@
 const { attachExamples } = require("../lib/examples");
-const { notImplemented } = require("../lib/not-implemented");
+const { writeResult } = require("../lib/output");
+const { editSoul, viewSoul } = require("../lib/soul");
 const { validateProfileName } = require("../lib/validation");
 
 function registerSoulCommands(program) {
@@ -10,7 +11,20 @@ function registerSoulCommands(program) {
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("Print a profile SOUL.md.")
     .addHelpText("after", attachExamples(["sle soul view", "sle soul view research"]))
-    .action((name, command) => notImplemented(command, "soul.view", `SOUL view will be implemented later.${name ? ` Target: ${name}.` : ""}`));
+    .action(async (...args) => {
+      const name = args[0];
+      const command = args.at(-1);
+      const result = await viewSoul(name);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human: result.raw.trimEnd() },
+      );
+    });
 
   soul
     .command("edit")
@@ -19,7 +33,21 @@ function registerSoulCommands(program) {
     .option("--stdin", "Read replacement content from stdin.")
     .description("Replace or update SOUL.md from file input or stdin.")
     .addHelpText("after", attachExamples(["sle soul edit research --file ./SOUL.md", "cat SOUL.md | sle soul edit --stdin"]))
-    .action((name, command) => notImplemented(command, "soul.edit", `SOUL edit will be implemented later.${name ? ` Target: ${name}.` : ""}`));
+    .action(async (...args) => {
+      const name = args[0];
+      const options = args[1];
+      const command = args.at(-1);
+      const result = await editSoul(name, options);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human: `Updated SOUL.md for profile '${result.profile}'.` },
+      );
+    });
 }
 
 function validateOptionalProfileName(value) {
