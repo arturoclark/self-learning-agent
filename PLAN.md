@@ -276,7 +276,7 @@ Results:
 - stats output is available in human-readable and `--json` forms
 - telemetry schema is stable and documented for reuse by future host adapters
 
-### Step 8: Codex host installer and adapter abstraction
+### Step 8: Codex host installer and adapter abstraction [DONE]
 
 What this achieves:
 Install thin integration skills so agents in Codex can operate on `sle` profiles using CLI commands instead of manual filesystem conventions, while setting the design boundary for future hosts.

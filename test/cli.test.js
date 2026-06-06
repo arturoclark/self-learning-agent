@@ -560,6 +560,93 @@ test("reports per-profile stats with memory and skill activity", async () => {
   assert.ok(parsed.data.soul.modifiedAt);
 });
 
+test("installs codex host wrappers and tracks installation metadata", async () => {
+  const sleHome = await createInstalledSleHome();
+  const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), "codex-test-"));
+
+  const result = run(["host", "install", "codex", "--json"], {
+    env: { SLE_HOME: sleHome, CODEX_HOME: codexHome },
+  });
+  assert.equal(result.status, 0);
+
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.data.host, "codex");
+  assert.equal(parsed.data.installPath, path.join(codexHome, "skills"));
+  assert.deepEqual(parsed.data.installedSkills, ["/use-profile", "/create-profile", "/update-profile"]);
+  assert.equal(parsed.data.createdFiles.length, 6);
+  assert.deepEqual(parsed.data.updatedFiles, []);
+  assert.deepEqual(parsed.data.unchangedFiles, []);
+  assert.ok(parsed.data.installedAt);
+
+  const useProfileSkill = await fs.readFile(
+    path.join(codexHome, "skills", "sle-use-profile", "SKILL.md"),
+    "utf8",
+  );
+  assert.match(useProfileSkill, /sle profile dir <name>/);
+  assert.match(useProfileSkill, /Do not guess profile names/);
+
+  const useProfileAgent = await fs.readFile(
+    path.join(codexHome, "skills", "sle-use-profile", "agents", "openai.yaml"),
+    "utf8",
+  );
+  assert.match(useProfileAgent, /display_name: "\/use-profile"/);
+
+  const config = JSON.parse(await fs.readFile(path.join(sleHome, "config.json"), "utf8"));
+  assert.equal(config.hosts.codex.installed, true);
+  assert.equal(config.hosts.codex.installPath, path.join(codexHome, "skills"));
+  assert.deepEqual(config.hosts.codex.installedSkills, [
+    "/use-profile",
+    "/create-profile",
+    "/update-profile",
+  ]);
+  assert.ok(config.hosts.codex.installedAt);
+});
+
+test("rerunning codex host install is idempotent and host list reports status", async () => {
+  const sleHome = await createInstalledSleHome();
+  const codexHome = await fs.mkdtemp(path.join(os.tmpdir(), "codex-test-"));
+
+  const first = run(["host", "install", "codex", "--json"], {
+    env: { SLE_HOME: sleHome, CODEX_HOME: codexHome },
+  });
+  assert.equal(first.status, 0);
+
+  const second = run(["host", "install", "codex", "--json"], {
+    env: { SLE_HOME: sleHome, CODEX_HOME: codexHome },
+  });
+  assert.equal(second.status, 0);
+
+  const secondParsed = JSON.parse(second.stdout);
+  assert.equal(secondParsed.ok, true);
+  assert.deepEqual(secondParsed.data.createdFiles, []);
+  assert.deepEqual(secondParsed.data.updatedFiles, []);
+  assert.equal(secondParsed.data.unchangedFiles.length, 6);
+
+  const listed = run(["host", "list", "--json"], {
+    env: { SLE_HOME: sleHome, CODEX_HOME: codexHome },
+  });
+  assert.equal(listed.status, 0);
+
+  const listedParsed = JSON.parse(listed.stdout);
+  assert.deepEqual(listedParsed, {
+    ok: true,
+    data: {
+      hosts: [
+        {
+          host: "codex",
+          available: true,
+          installed: true,
+          installPath: path.join(codexHome, "skills"),
+          installedSkills: ["/use-profile", "/create-profile", "/update-profile"],
+          installedAt: listedParsed.data.hosts[0].installedAt,
+        },
+      ],
+    },
+  });
+  assert.ok(listedParsed.data.hosts[0].installedAt);
+});
+
 async function createTempSleHome() {
   return fs.mkdtemp(path.join(os.tmpdir(), "sle-test-"));
 }
