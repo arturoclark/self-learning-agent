@@ -1,0 +1,26 @@
+{
+  "name": "sle",
+  "version": "0.1.0",
+  "description": "Profile-scoped memory and skills CLI for agents.",
+  "bin": {
+    "sle": "./bin/sle.js"
+  },
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "start": "node ./bin/sle.js"
+  },
+  "keywords": [
+    "cli",
+    "agents",
+    "memory",
+    "skills"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^14.0.0"
+  }
+}
