@@ -8,7 +8,7 @@ const { registerSkillCommands } = require("./skill");
 const { registerSoulCommands } = require("./soul");
 const { registerStatsCommands } = require("./stats");
 const { attachExamples } = require("../lib/examples");
-const { renderJson } = require("../lib/output");
+const { ensureSchemaReady } = require("../lib/bootstrap");
 
 function buildRootCommand() {
   const program = new Command();
@@ -20,7 +20,7 @@ function buildRootCommand() {
     .showHelpAfterError("(use --help for usage)")
     .showSuggestionAfterError()
     .option("--json", "Emit machine-readable JSON output.")
-    .hook("preAction", (command) => {
+    .hook("preAction", async (command) => {
       const opts = command.optsWithGlobals();
       if (opts.json) {
         command.configureOutput({
@@ -29,6 +29,8 @@ function buildRootCommand() {
           outputError: (str, write) => write(str),
         });
       }
+
+      await ensureSchemaReady();
     })
     .addHelpText(
       "after",

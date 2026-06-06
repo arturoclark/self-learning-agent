@@ -1,0 +1,7 @@
+const CURRENT_SCHEMA_VERSION = 1;
+const DEFAULT_PROFILE_NAME = "default";
+
+module.exports = {
+  CURRENT_SCHEMA_VERSION,
+  DEFAULT_PROFILE_NAME,
+};
