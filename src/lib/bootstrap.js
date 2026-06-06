@@ -145,4 +145,5 @@ function getUserPath(profileName) {
 module.exports = {
   bootstrapSleHome,
   ensureSchemaReady,
+  ensureProfileScaffold,
 };

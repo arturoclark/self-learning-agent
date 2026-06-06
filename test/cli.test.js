@@ -40,7 +40,7 @@ test("returns machine-readable JSON errors", () => {
   assert.equal(result.status, 1);
   const parsed = JSON.parse(result.stdout);
   assert.deepEqual(parsed.ok, false);
-  assert.equal(parsed.error.code, "NOT_IMPLEMENTED");
+  assert.equal(parsed.error.code, "SLE_NOT_INITIALIZED");
 });
 
 test("validates names with explicit errors", () => {
@@ -99,8 +99,111 @@ test("schema mismatch is rejected before command execution", async () => {
   assert.match(result.stderr, /SCHEMA_MIGRATION_REQUIRED/);
 });
 
+test("creates and lists named profiles", async () => {
+  const sleHome = await createInstalledSleHome();
+
+  const created = run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+  assert.equal(created.status, 0);
+  assert.match(created.stdout, /Created profile 'research'/);
+
+  await assertPathExists(path.join(sleHome, "research", "SOUL.md"));
+  await assertPathExists(path.join(sleHome, "research", "memories", "MEMORY.md"));
+  await assertPathExists(path.join(sleHome, "research", "memories", "USER.md"));
+  await assertPathExists(path.join(sleHome, "research", "skills", ".usage.json"));
+
+  const listed = run(["profile", "list", "--json"], { env: { SLE_HOME: sleHome } });
+  assert.equal(listed.status, 0);
+
+  const parsed = JSON.parse(listed.stdout);
+  assert.deepEqual(parsed, {
+    ok: true,
+    data: {
+      profiles: [
+        {
+          name: "default",
+          path: path.join(sleHome, "default"),
+          isDefault: true,
+        },
+        {
+          name: "research",
+          path: path.join(sleHome, "research"),
+          isDefault: false,
+        },
+      ],
+      defaultProfile: "default",
+    },
+  });
+});
+
+test("returns profile directory using explicit or default resolution", async () => {
+  const sleHome = await createInstalledSleHome();
+  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+
+  const explicitResult = run(["profile", "dir", "research"], { env: { SLE_HOME: sleHome } });
+  assert.equal(explicitResult.status, 0);
+  assert.equal(explicitResult.stdout.trim(), path.join(sleHome, "research"));
+
+  const defaultResult = run(["profile", "dir"], { env: { SLE_HOME: sleHome } });
+  assert.equal(defaultResult.status, 0);
+  assert.equal(defaultResult.stdout.trim(), path.join(sleHome, "default"));
+});
+
+test("sets and gets the default profile", async () => {
+  const sleHome = await createInstalledSleHome();
+  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+
+  const setDefaultResult = run(["profile", "set-default", "research", "--json"], {
+    env: { SLE_HOME: sleHome },
+  });
+  assert.equal(setDefaultResult.status, 0);
+
+  const setDefaultParsed = JSON.parse(setDefaultResult.stdout);
+  assert.equal(setDefaultParsed.ok, true);
+  assert.equal(setDefaultParsed.data.defaultProfile, "research");
+
+  const getDefaultResult = run(["profile", "get-default"], { env: { SLE_HOME: sleHome } });
+  assert.equal(getDefaultResult.status, 0);
+  assert.equal(getDefaultResult.stdout.trim(), "research");
+
+  const config = JSON.parse(await fs.readFile(path.join(sleHome, "config.json"), "utf8"));
+  assert.equal(config.defaultProfile, "research");
+});
+
+test("refuses to delete the current default profile", async () => {
+  const sleHome = await createInstalledSleHome();
+
+  const result = run(["profile", "delete", "default", "--yes"], { env: { SLE_HOME: sleHome } });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /DEFAULT_PROFILE_DELETE_FORBIDDEN/);
+  await assertPathExists(path.join(sleHome, "default"));
+});
+
+test("deletes a non-default profile with explicit confirmation", async () => {
+  const sleHome = await createInstalledSleHome();
+  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+
+  const result = run(["profile", "delete", "research", "--yes", "--json"], {
+    env: { SLE_HOME: sleHome },
+  });
+  assert.equal(result.status, 0);
+
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.data.deletedProfile, "research");
+
+  await assert.rejects(fs.access(path.join(sleHome, "research")));
+});
+
 async function createTempSleHome() {
   return fs.mkdtemp(path.join(os.tmpdir(), "sle-test-"));
+}
+
+async function createInstalledSleHome() {
+  const sleHome = await createTempSleHome();
+  const result = run(["install"], { env: { SLE_HOME: sleHome } });
+  assert.equal(result.status, 0);
+  return sleHome;
 }
 
 async function assertPathExists(targetPath) {

@@ -1,24 +1,58 @@
-const { Command } = require("commander");
 const { attachExamples } = require("../lib/examples");
+const { writeResult } = require("../lib/output");
+const {
+  createProfile,
+  deleteProfile,
+  getDefaultProfile,
+  listProfiles,
+  resolveExistingProfile,
+  setDefaultProfile,
+} = require("../lib/profiles");
 const { notImplemented } = require("../lib/not-implemented");
 const { validateProfileName } = require("../lib/validation");
 
 function registerProfileCommands(program) {
   const profile = program.command("profile").description("Manage profiles.");
+  profile.addHelpText("after", "\nRename is intentionally not implemented in v1.\n");
 
   profile
     .command("create")
     .argument("<name>", "Profile name.", validateProfileName)
     .description("Create a named profile.")
     .addHelpText("after", attachExamples(["sle profile create research"]))
-    .action((name, command) => notImplemented(command, "profile.create", `Profile '${name}' creation will be implemented in Step 3.`));
+    .action(async (...args) => {
+      const name = args[0];
+      const command = args.at(-1);
+      const result = await createProfile(name);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: {
+            profile: result.name,
+            profilePath: result.path,
+            created: result.created,
+          },
+        },
+        {
+          human: `Created profile '${result.name}' at ${result.path}.`,
+        },
+      );
+    });
 
   profile
     .command("update")
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("Update metadata or scaffolded files for a profile.")
     .addHelpText("after", attachExamples(["sle profile update", "sle profile update research"]))
-    .action((name, command) => notImplemented(command, "profile.update", `Profile update is planned for Step 3.${name ? ` Target: ${name}.` : ""}`));
+    .action((...args) =>
+      notImplemented(
+        args.at(-1),
+        "profile.update",
+        `Profile update is planned for a later step.${args[0] ? ` Target: ${args[0]}.` : ""}`,
+      ),
+    );
 
   profile
     .command("delete")
@@ -26,33 +60,117 @@ function registerProfileCommands(program) {
     .requiredOption("--yes", "Confirm permanent deletion.")
     .description("Delete a named profile.")
     .addHelpText("after", attachExamples(["sle profile delete research --yes"]))
-    .action((name, command) => notImplemented(command, "profile.delete", `Profile '${name}' deletion will be implemented in Step 3.`));
+    .action(async (...args) => {
+      const name = args[0];
+      const command = args.at(-1);
+      const result = await deleteProfile(name);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        {
+          human: `Deleted profile '${result.deletedProfile}'.`,
+        },
+      );
+    });
 
   profile
     .command("list")
     .description("List profiles and indicate the default.")
     .addHelpText("after", attachExamples(["sle profile list", "sle profile list --json"]))
-    .action((_, command) => notImplemented(command, "profile.list", "Profile listing will be implemented in Step 3."));
+    .action(async (...args) => {
+      const command = args.at(-1);
+      const result = await listProfiles();
+      const human =
+        result.profiles.length === 0
+          ? "No profiles found."
+          : result.profiles
+              .map((profileEntry) =>
+                `${profileEntry.name}${profileEntry.isDefault ? " (default)" : ""}: ${profileEntry.path}`,
+              )
+              .join("\n");
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human },
+      );
+    });
 
   profile
     .command("dir")
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("Print the absolute path for a profile.")
     .addHelpText("after", attachExamples(["sle profile dir", "sle profile dir research"]))
-    .action((name, command) => notImplemented(command, "profile.dir", `Profile directory lookup will be implemented in Step 3.${name ? ` Target: ${name}.` : ""}`));
+    .action(async (...args) => {
+      const name = args[0];
+      const command = args.at(-1);
+      const result = await resolveExistingProfile(name);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: {
+            profile: result.profileName,
+            profilePath: result.profilePath,
+          },
+        },
+        {
+          human: result.profilePath,
+        },
+      );
+    });
 
   profile
     .command("set-default")
     .argument("<name>", "Profile name.", validateProfileName)
     .description("Set the default profile.")
     .addHelpText("after", attachExamples(["sle profile set-default research"]))
-    .action((name, command) => notImplemented(command, "profile.set-default", `Default profile switching for '${name}' will be implemented in Step 3.`));
+    .action(async (...args) => {
+      const name = args[0];
+      const command = args.at(-1);
+      const result = await setDefaultProfile(name);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        {
+          human: `Default profile is now '${result.defaultProfile}'.`,
+        },
+      );
+    });
 
   profile
     .command("get-default")
     .description("Print the default profile name.")
     .addHelpText("after", attachExamples(["sle profile get-default"]))
-    .action((_, command) => notImplemented(command, "profile.get-default", "Default profile lookup will be implemented in Step 3."));
+    .action(async (...args) => {
+      const command = args.at(-1);
+      const defaultProfile = await getDefaultProfile();
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: {
+            defaultProfile,
+          },
+        },
+        {
+          human: defaultProfile,
+        },
+      );
+    });
 }
 
 function validateOptionalProfileName(value) {

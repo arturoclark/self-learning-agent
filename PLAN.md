@@ -206,7 +206,7 @@ Results:
 - startup checks schema version and routes through a migration hook
 - install is idempotent and safe to rerun
 
-### Step 3: Profile lifecycle management
+### Step 3: Profile lifecycle management [DONE]
 
 What this achieves:
 Let users create, inspect, select, and remove named profiles cleanly, with explicit default-profile handling and no ambiguous behavior.
