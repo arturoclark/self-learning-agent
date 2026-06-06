@@ -1,6 +1,6 @@
-# self-learning-agent
+# self-learning-agent-cli
 
-`self-learning-agent` installs the `sla` CLI, a profile-scoped memory and skills manager for agents. It stores profile state under `~/.sla/`, exposes explicit JSON output for agent consumption, and can install thin Codex host wrappers that route profile work back through the CLI.
+`self-learning-agent-cli` installs the `sla` CLI, a profile-scoped memory and skills manager for agents. It stores profile state under `~/.sla/`, exposes explicit JSON output for agent consumption, and can install thin Codex host wrappers that route profile work back through the CLI.
 
 ## Requirements
 
@@ -9,7 +9,7 @@
 ## Install
 
 ```bash
-npm install -g self-learning-agent
+npm install -g self-learning-agent-cli
 ```
 
 Run `sla help` after install to see the command surface and examples.
