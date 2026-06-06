@@ -70,15 +70,102 @@ async function updateMemoryUsage(profileName, update) {
   });
 }
 
+async function updateSkillUsage(profileName, skillName, operation, timestamp = new Date().toISOString()) {
+  const usagePath = getUsagePath(profileName);
+  const lockPath = `${usagePath}.lock`;
+
+  return withFileLock(lockPath, async () => {
+    const usage = await loadUsage(profileName);
+    const currentSkillUsage = normalizeSkillUsageEntry(usage.skills[skillName]);
+    const nextSkillUsage = {
+      ...currentSkillUsage,
+      lastActivityAt: timestamp,
+      lastOperation: operation,
+    };
+
+    if (operation === "view") {
+      nextSkillUsage.viewCount += 1;
+      nextSkillUsage.lastViewedAt = timestamp;
+    }
+
+    if (operation === "edit") {
+      nextSkillUsage.editCount += 1;
+      nextSkillUsage.lastEditedAt = timestamp;
+    }
+
+    if (operation === "use") {
+      nextSkillUsage.useCount += 1;
+      nextSkillUsage.lastUsedAt = timestamp;
+    }
+
+    const normalized = normalizeUsage({
+      ...usage,
+      skills: {
+        ...usage.skills,
+        [skillName]: nextSkillUsage,
+      },
+    });
+
+    await saveUsage(profileName, normalized);
+    return normalized;
+  });
+}
+
+async function removeSkillUsage(profileName, skillName) {
+  const usagePath = getUsagePath(profileName);
+  const lockPath = `${usagePath}.lock`;
+
+  return withFileLock(lockPath, async () => {
+    const usage = await loadUsage(profileName);
+    if (!Object.prototype.hasOwnProperty.call(usage.skills, skillName)) {
+      return usage;
+    }
+
+    const nextSkills = { ...usage.skills };
+    delete nextSkills[skillName];
+
+    const normalized = normalizeUsage({
+      ...usage,
+      skills: nextSkills,
+    });
+
+    await saveUsage(profileName, normalized);
+    return normalized;
+  });
+}
+
+function normalizeSkillUsageEntry(skillUsage) {
+  const input = skillUsage && typeof skillUsage === "object" ? skillUsage : {};
+
+  return {
+    viewCount: Number.isInteger(input.viewCount) ? input.viewCount : 0,
+    lastViewedAt: input.lastViewedAt ?? null,
+    editCount: Number.isInteger(input.editCount) ? input.editCount : 0,
+    lastEditedAt: input.lastEditedAt ?? null,
+    useCount: Number.isInteger(input.useCount) ? input.useCount : 0,
+    lastUsedAt: input.lastUsedAt ?? null,
+    lastActivityAt: input.lastActivityAt ?? null,
+    lastOperation: input.lastOperation ?? null,
+  };
+}
+
 function normalizeUsage(usage) {
   const defaults = createDefaultUsage();
   const input = usage && typeof usage === "object" ? usage : {};
   const memory = input.memory && typeof input.memory === "object" ? input.memory : {};
   const targets = memory.targets && typeof memory.targets === "object" ? memory.targets : {};
+  const rawSkills =
+    input.skills && typeof input.skills === "object" && !Array.isArray(input.skills) ? input.skills : {};
+  const skills = Object.fromEntries(
+    Object.entries(rawSkills).map(([skillName, skillUsage]) => [
+      skillName,
+      normalizeSkillUsageEntry(skillUsage),
+    ]),
+  );
 
   return {
     schemaVersion: input.schemaVersion ?? defaults.schemaVersion,
-    skills: input.skills && typeof input.skills === "object" && !Array.isArray(input.skills) ? input.skills : {},
+    skills,
     memory: {
       lastModifiedTarget: memory.lastModifiedTarget ?? defaults.memory.lastModifiedTarget,
       lastOperation: memory.lastOperation ?? defaults.memory.lastOperation,
@@ -105,6 +192,8 @@ module.exports = {
   createDefaultUsage,
   loadUsage,
   normalizeUsage,
+  removeSkillUsage,
   saveUsage,
   updateMemoryUsage,
+  updateSkillUsage,
 };

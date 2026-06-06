@@ -248,7 +248,7 @@ Results:
 - stats metadata captures last modified target, last operation time, and entry counts in a normalized telemetry format
 - command behavior is explicit when content is missing or matches multiple entries
 
-### Step 6: Skill management and filesystem contract
+### Step 6: Skill management and filesystem contract [DONE]
 
 What this achieves:
 Implement local procedural knowledge storage that mirrors Hermes’ skill directory model and supports agent-safe maintenance.

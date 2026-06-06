@@ -1,5 +1,14 @@
 const { attachExamples } = require("../lib/examples");
-const { notImplemented } = require("../lib/not-implemented");
+const { writeResult } = require("../lib/output");
+const {
+  createSkill,
+  deleteSkill,
+  editSkill,
+  listSkills,
+  removeSkillFile,
+  viewSkill,
+  writeSkillFile,
+} = require("../lib/skills");
 const { validateProfileName, validateRelativeManagedPath, validateSkillName, validateSkillSubdir } = require("../lib/validation");
 
 function registerSkillCommands(program) {
@@ -10,7 +19,24 @@ function registerSkillCommands(program) {
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("List skills for a profile.")
     .addHelpText("after", attachExamples(["sle skill list", "sle skill list research --json"]))
-    .action((name, command) => notImplemented(command, "skill.list", `Skill listing will be implemented later.${name ? ` Target: ${name}.` : ""}`));
+    .action(async (...args) => {
+      const name = args[0];
+      const command = args.at(-1);
+      const result = await listSkills(name);
+      const human =
+        result.skills.length === 0
+          ? "No skills found."
+          : result.skills.map((entry) => `${entry.skill}: ${entry.description}`).join("\n");
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human },
+      );
+    });
 
   skill
     .command("view")
@@ -18,7 +44,21 @@ function registerSkillCommands(program) {
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("Show a skill SKILL.md.")
     .addHelpText("after", attachExamples(["sle skill view deploy", "sle skill view deploy research"]))
-    .action((skillName, name, command) => notImplemented(command, "skill.view", `Skill view will be implemented later. Skill: ${skillName}.${name ? ` Profile: ${name}.` : ""}`));
+    .action(async (...args) => {
+      const skillName = args[0];
+      const name = args[1];
+      const command = args.at(-1);
+      const result = await viewSkill(skillName, name);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human: result.raw.trimEnd() },
+      );
+    });
 
   skill
     .command("create")
@@ -26,7 +66,21 @@ function registerSkillCommands(program) {
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("Create a new skill.")
     .addHelpText("after", attachExamples(["sle skill create deploy", "sle skill create deploy research"]))
-    .action((skillName, name, command) => notImplemented(command, "skill.create", `Skill creation will be implemented later. Skill: ${skillName}.${name ? ` Profile: ${name}.` : ""}`));
+    .action(async (...args) => {
+      const skillName = args[0];
+      const name = args[1];
+      const command = args.at(-1);
+      const result = await createSkill(skillName, name);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human: `Created skill '${result.skill}' for profile '${result.profile}'.` },
+      );
+    });
 
   skill
     .command("edit")
@@ -36,7 +90,22 @@ function registerSkillCommands(program) {
     .option("--stdin", "Read replacement content from stdin.")
     .description("Replace or update a SKILL.md.")
     .addHelpText("after", attachExamples(["sle skill edit deploy research --file ./SKILL.md", "cat SKILL.md | sle skill edit deploy --stdin"]))
-    .action((skillName, name, command) => notImplemented(command, "skill.edit", `Skill edit will be implemented later. Skill: ${skillName}.${name ? ` Profile: ${name}.` : ""}`));
+    .action(async (...args) => {
+      const skillName = args[0];
+      const name = args[1];
+      const options = args[2];
+      const command = args.at(-1);
+      const result = await editSkill(skillName, name, options);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human: `Updated SKILL.md for '${result.skill}' in profile '${result.profile}'.` },
+      );
+    });
 
   skill
     .command("delete")
@@ -45,7 +114,21 @@ function registerSkillCommands(program) {
     .requiredOption("--yes", "Confirm permanent deletion.")
     .description("Delete a skill.")
     .addHelpText("after", attachExamples(["sle skill delete deploy research --yes"]))
-    .action((skillName, name, command) => notImplemented(command, "skill.delete", `Skill delete will be implemented later. Skill: ${skillName}.${name ? ` Profile: ${name}.` : ""}`));
+    .action(async (...args) => {
+      const skillName = args[0];
+      const name = args[1];
+      const command = args.at(-1);
+      const result = await deleteSkill(skillName, name);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human: `Deleted skill '${result.deletedSkill}' from profile '${result.profile}'.` },
+      );
+    });
 
   skill
     .command("write-file")
@@ -53,9 +136,26 @@ function registerSkillCommands(program) {
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .requiredOption("--subdir <name>", "Managed skill subdirectory.", validateSkillSubdir)
     .requiredOption("--path <relativePath>", "Relative path inside the managed subdirectory.", validateRelativeManagedPath)
+    .option("--file <path>", "Read file content from a file.")
+    .option("--stdin", "Read file content from stdin.")
     .description("Write a managed skill support file.")
-    .addHelpText("after", attachExamples(["sle skill write-file deploy research --subdir scripts --path check.sh"]))
-    .action((skillName, name, command) => notImplemented(command, "skill.write-file", `Skill support file write will be implemented later. Skill: ${skillName}.${name ? ` Profile: ${name}.` : ""}`));
+    .addHelpText("after", attachExamples(["sle skill write-file deploy research --subdir scripts --path check.sh --file ./check.sh", "cat check.sh | sle skill write-file deploy --subdir scripts --path check.sh --stdin"]))
+    .action(async (...args) => {
+      const skillName = args[0];
+      const name = args[1];
+      const options = args[2];
+      const command = args.at(-1);
+      const result = await writeSkillFile(skillName, name, options);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human: `Wrote ${result.path} for skill '${result.skill}' in profile '${result.profile}'.` },
+      );
+    });
 
   skill
     .command("remove-file")
@@ -65,7 +165,22 @@ function registerSkillCommands(program) {
     .requiredOption("--yes", "Confirm permanent deletion.")
     .description("Remove a managed skill support file.")
     .addHelpText("after", attachExamples(["sle skill remove-file deploy research --path scripts/check.sh --yes"]))
-    .action((skillName, name, command) => notImplemented(command, "skill.remove-file", `Skill support file removal will be implemented later. Skill: ${skillName}.${name ? ` Profile: ${name}.` : ""}`));
+    .action(async (...args) => {
+      const skillName = args[0];
+      const name = args[1];
+      const options = args[2];
+      const command = args.at(-1);
+      const result = await removeSkillFile(skillName, name, options.path);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human: `Removed ${result.path} from skill '${result.skill}' in profile '${result.profile}'.` },
+      );
+    });
 }
 
 function validateOptionalProfileName(value) {

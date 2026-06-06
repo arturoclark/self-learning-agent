@@ -370,6 +370,137 @@ test("fails explicitly when memory matches are missing or ambiguous", async () =
   assert.equal(parsed.error.code, "MEMORY_ENTRY_NOT_FOUND");
 });
 
+test("creates, lists, views, edits, and deletes skills", async () => {
+  const sleHome = await createInstalledSleHome();
+  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+
+  const created = run(["skill", "create", "deploy", "research", "--json"], {
+    env: { SLE_HOME: sleHome },
+  });
+  assert.equal(created.status, 0);
+  const createdParsed = JSON.parse(created.stdout);
+  assert.equal(createdParsed.ok, true);
+  assert.equal(createdParsed.data.skill, "deploy");
+  assert.equal(createdParsed.data.metadata.name, "deploy");
+
+  const listed = run(["skill", "list", "research", "--json"], { env: { SLE_HOME: sleHome } });
+  assert.equal(listed.status, 0);
+  assert.deepEqual(JSON.parse(listed.stdout), {
+    ok: true,
+    data: {
+      profile: "research",
+      skills: [
+        {
+          skill: "deploy",
+          name: "deploy",
+          description: "TODO: describe this skill.",
+          path: path.join(sleHome, "research", "skills", "deploy", "SKILL.md"),
+        },
+      ],
+    },
+  });
+
+  const viewed = run(["skill", "view", "deploy", "research", "--json"], {
+    env: { SLE_HOME: sleHome },
+  });
+  assert.equal(viewed.status, 0);
+  const viewedParsed = JSON.parse(viewed.stdout);
+  assert.equal(viewedParsed.ok, true);
+  assert.equal(viewedParsed.data.metadata.name, "deploy");
+  assert.match(viewedParsed.data.raw, /^---\nname: deploy\n/);
+
+  const nextSkillPath = path.join(sleHome, "deploy-skill.md");
+  await fs.writeFile(
+    nextSkillPath,
+    ["---", "name: deploy", "description: Deploys the API.", "---", "", "# Deploy", "", "Run the release flow.", ""].join("\n"),
+    "utf8",
+  );
+
+  const edited = run(["skill", "edit", "deploy", "research", "--file", nextSkillPath], {
+    env: { SLE_HOME: sleHome },
+  });
+  assert.equal(edited.status, 0);
+  assert.match(edited.stdout, /Updated SKILL\.md/);
+
+  const deleted = run(["skill", "delete", "deploy", "research", "--yes", "--json"], {
+    env: { SLE_HOME: sleHome },
+  });
+  assert.equal(deleted.status, 0);
+  const deletedParsed = JSON.parse(deleted.stdout);
+  assert.equal(deletedParsed.ok, true);
+  assert.equal(deletedParsed.data.deletedSkill, "deploy");
+
+  await assert.rejects(fs.access(path.join(sleHome, "research", "skills", "deploy", "SKILL.md")));
+
+  const usage = JSON.parse(
+    await fs.readFile(path.join(sleHome, "research", "skills", ".usage.json"), "utf8"),
+  );
+  assert.equal(usage.skills.deploy, undefined);
+});
+
+test("writes and removes managed skill files in allowed subdirectories", async () => {
+  const sleHome = await createInstalledSleHome();
+  run(["skill", "create", "deploy"], { env: { SLE_HOME: sleHome } });
+
+  const scriptPath = path.join(sleHome, "check.sh");
+  await fs.writeFile(scriptPath, "#!/bin/sh\necho ok\n", "utf8");
+
+  const wrote = run(
+    ["skill", "write-file", "deploy", "--subdir", "scripts", "--path", "check.sh", "--file", scriptPath, "--json"],
+    { env: { SLE_HOME: sleHome } },
+  );
+  assert.equal(wrote.status, 0);
+  const wroteParsed = JSON.parse(wrote.stdout);
+  assert.equal(wroteParsed.ok, true);
+  assert.equal(wroteParsed.data.path, "scripts/check.sh");
+
+  const managedFile = path.join(sleHome, "default", "skills", "deploy", "scripts", "check.sh");
+  assert.equal(await fs.readFile(managedFile, "utf8"), "#!/bin/sh\necho ok\n");
+
+  const removed = run(["skill", "remove-file", "deploy", "--path", "scripts/check.sh", "--yes"], {
+    env: { SLE_HOME: sleHome },
+  });
+  assert.equal(removed.status, 0);
+  await assert.rejects(fs.access(managedFile));
+
+  const usage = JSON.parse(
+    await fs.readFile(path.join(sleHome, "default", "skills", ".usage.json"), "utf8"),
+  );
+  assert.equal(usage.skills.deploy.editCount, 3);
+  assert.equal(usage.skills.deploy.viewCount, 0);
+  assert.ok(usage.skills.deploy.lastEditedAt);
+});
+
+test("rejects invalid skill frontmatter and unsafe managed paths", async () => {
+  const sleHome = await createInstalledSleHome();
+  run(["skill", "create", "deploy"], { env: { SLE_HOME: sleHome } });
+
+  const invalidSkillPath = path.join(sleHome, "invalid-skill.md");
+  await fs.writeFile(invalidSkillPath, "# Deploy\n\nMissing frontmatter.\n", "utf8");
+
+  const invalidFrontmatter = run(["skill", "edit", "deploy", "--file", invalidSkillPath, "--json"], {
+    env: { SLE_HOME: sleHome },
+  });
+  assert.equal(invalidFrontmatter.status, 2);
+  assert.equal(JSON.parse(invalidFrontmatter.stdout).error.code, "INVALID_SKILL_FRONTMATTER");
+
+  const unsafeWrite = run(
+    ["skill", "write-file", "deploy", "--subdir", "scripts", "--path", "../check.sh", "--stdin", "--json"],
+    {
+      env: { SLE_HOME: sleHome },
+      input: "echo bad\n",
+    },
+  );
+  assert.equal(unsafeWrite.status, 2);
+  assert.equal(JSON.parse(unsafeWrite.stdout).error.code, "INVALID_MANAGED_PATH");
+
+  const unsafeRemove = run(["skill", "remove-file", "deploy", "--path", "SKILL.md", "--yes", "--json"], {
+    env: { SLE_HOME: sleHome },
+  });
+  assert.equal(unsafeRemove.status, 2);
+  assert.equal(JSON.parse(unsafeRemove.stdout).error.code, "INVALID_SKILL_SUBDIR");
+});
+
 async function createTempSleHome() {
   return fs.mkdtemp(path.join(os.tmpdir(), "sle-test-"));
 }

@@ -29,6 +29,14 @@ function getSkillsPath(profileName) {
   return path.join(getProfilePath(profileName), "skills");
 }
 
+function getSkillPath(profileName, skillName) {
+  return path.join(getSkillsPath(profileName), skillName);
+}
+
+function getSkillMarkdownPath(profileName, skillName) {
+  return path.join(getSkillPath(profileName, skillName), "SKILL.md");
+}
+
 function getUsagePath(profileName) {
   return path.join(getSkillsPath(profileName), ".usage.json");
 }
@@ -38,6 +46,8 @@ module.exports = {
   getMemoryStorePath,
   getMemoriesPath,
   getProfilePath,
+  getSkillMarkdownPath,
+  getSkillPath,
   getSkillsPath,
   getSleHome,
   getSoulPath,
