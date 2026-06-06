@@ -1,5 +1,6 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
+const { SLEError } = require("./errors");
 
 async function pathExists(targetPath) {
   try {
@@ -41,9 +42,46 @@ async function writeFileIfMissing(targetPath, content) {
   }
 }
 
+async function withFileLock(lockPath, operation, options = {}) {
+  const retryDelayMs = options.retryDelayMs ?? 25;
+  const timeoutMs = options.timeoutMs ?? 2000;
+  const startedAt = Date.now();
+
+  while (true) {
+    try {
+      const handle = await fs.open(lockPath, "wx");
+      try {
+        return await operation();
+      } finally {
+        await handle.close();
+        await fs.rm(lockPath, { force: true });
+      }
+    } catch (error) {
+      if (error?.code !== "EEXIST") {
+        throw error;
+      }
+
+      if (Date.now() - startedAt >= timeoutMs) {
+        throw new SLEError("Timed out waiting for an internal file lock.", {
+          code: "LOCK_TIMEOUT",
+          exitCode: 1,
+          details: { lockPath, timeoutMs },
+        });
+      }
+
+      await sleep(retryDelayMs);
+    }
+  }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 module.exports = {
   ensureDirectory,
   pathExists,
+  withFileLock,
   writeFileAtomic,
   writeFileIfMissing,
 };

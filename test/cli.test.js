@@ -195,6 +195,121 @@ test("deletes a non-default profile with explicit confirmation", async () => {
   await assert.rejects(fs.access(path.join(sleHome, "research")));
 });
 
+test("adds, lists, views, replaces, and removes memory entries", async () => {
+  const sleHome = await createInstalledSleHome();
+  run(["profile", "create", "research"], { env: { SLE_HOME: sleHome } });
+
+  const addMemory = run(
+    ["memory", "add", "research", "--target", "memory", "--entry", "Postgres runs locally"],
+    { env: { SLE_HOME: sleHome } },
+  );
+  assert.equal(addMemory.status, 0);
+
+  const addUser = run(
+    ["memory", "add", "--target", "user", "--entry", "Prefers concise answers"],
+    { env: { SLE_HOME: sleHome } },
+  );
+  assert.equal(addUser.status, 0);
+
+  const listed = run(["memory", "list", "research", "--json"], { env: { SLE_HOME: sleHome } });
+  assert.equal(listed.status, 0);
+  assert.deepEqual(JSON.parse(listed.stdout), {
+    ok: true,
+    data: {
+      profile: "research",
+      targets: [
+        {
+          target: "memory",
+          entryCount: 1,
+          entries: ["Postgres runs locally"],
+        },
+        {
+          target: "user",
+          entryCount: 0,
+          entries: [],
+        },
+      ],
+    },
+  });
+
+  const userView = run(["memory", "view", "--target", "user", "--json"], {
+    env: { SLE_HOME: sleHome },
+  });
+  assert.equal(userView.status, 0);
+  const viewed = JSON.parse(userView.stdout);
+  assert.equal(viewed.ok, true);
+  assert.equal(viewed.data.profile, "default");
+  assert.equal(viewed.data.target, "user");
+  assert.deepEqual(viewed.data.entries, ["Prefers concise answers"]);
+  assert.match(viewed.data.raw, /^# USER\n\nPrefers concise answers\n$/);
+
+  const replaceResult = run(
+    ["memory", "replace", "--target", "user", "--match", "concise", "--entry", "Prefers detailed answers"],
+    { env: { SLE_HOME: sleHome } },
+  );
+  assert.equal(replaceResult.status, 0);
+
+  const removeResult = run(
+    ["memory", "remove", "--target", "user", "--match", "detailed"],
+    { env: { SLE_HOME: sleHome } },
+  );
+  assert.equal(removeResult.status, 0);
+
+  const usage = JSON.parse(
+    await fs.readFile(path.join(sleHome, "default", "skills", ".usage.json"), "utf8"),
+  );
+  assert.equal(usage.memory.lastModifiedTarget, "user");
+  assert.equal(usage.memory.lastOperation, "remove");
+  assert.equal(usage.memory.targets.user.entryCount, 0);
+  assert.ok(usage.memory.lastOperationAt);
+});
+
+test("rejects duplicate memory entries", async () => {
+  const sleHome = await createInstalledSleHome();
+
+  const first = run(
+    ["memory", "add", "--target", "memory", "--entry", "The API runs in us-east-1"],
+    { env: { SLE_HOME: sleHome } },
+  );
+  assert.equal(first.status, 0);
+
+  const duplicate = run(
+    ["memory", "add", "--target", "memory", "--entry", "The API runs in us-east-1", "--json"],
+    { env: { SLE_HOME: sleHome } },
+  );
+  assert.equal(duplicate.status, 2);
+
+  const parsed = JSON.parse(duplicate.stdout);
+  assert.equal(parsed.ok, false);
+  assert.equal(parsed.error.code, "MEMORY_ENTRY_ALREADY_EXISTS");
+});
+
+test("fails explicitly when memory matches are missing or ambiguous", async () => {
+  const sleHome = await createInstalledSleHome();
+
+  run(["memory", "add", "--target", "memory", "--entry", "Primary API endpoint"], {
+    env: { SLE_HOME: sleHome },
+  });
+  run(["memory", "add", "--target", "memory", "--entry", "Primary API token"], {
+    env: { SLE_HOME: sleHome },
+  });
+
+  const ambiguous = run(
+    ["memory", "replace", "--target", "memory", "--match", "Primary API", "--entry", "Updated"],
+    { env: { SLE_HOME: sleHome } },
+  );
+  assert.equal(ambiguous.status, 1);
+  assert.match(ambiguous.stderr, /MEMORY_ENTRY_AMBIGUOUS/);
+
+  const missing = run(
+    ["memory", "remove", "--target", "memory", "--match", "does not exist", "--json"],
+    { env: { SLE_HOME: sleHome } },
+  );
+  assert.equal(missing.status, 1);
+  const parsed = JSON.parse(missing.stdout);
+  assert.equal(parsed.error.code, "MEMORY_ENTRY_NOT_FOUND");
+});
+
 async function createTempSleHome() {
   return fs.mkdtemp(path.join(os.tmpdir(), "sle-test-"));
 }

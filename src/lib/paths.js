@@ -21,6 +21,10 @@ function getMemoriesPath(profileName) {
   return path.join(getProfilePath(profileName), "memories");
 }
 
+function getMemoryStorePath(profileName, target) {
+  return path.join(getMemoriesPath(profileName), target === "user" ? "USER.md" : "MEMORY.md");
+}
+
 function getSkillsPath(profileName) {
   return path.join(getProfilePath(profileName), "skills");
 }
@@ -31,6 +35,7 @@ function getUsagePath(profileName) {
 
 module.exports = {
   getConfigPath,
+  getMemoryStorePath,
   getMemoriesPath,
   getProfilePath,
   getSkillsPath,

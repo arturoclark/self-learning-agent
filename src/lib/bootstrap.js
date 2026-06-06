@@ -1,10 +1,13 @@
+const fs = require("node:fs/promises");
 const path = require("node:path");
 const { createDefaultConfig, loadConfig, saveConfig } = require("./config");
 const { CURRENT_SCHEMA_VERSION, DEFAULT_PROFILE_NAME } = require("./constants");
 const { SLEError } = require("./errors");
+const { createDefaultUsage, normalizeUsage } = require("./usage");
 const {
   ensureDirectory,
   pathExists,
+  writeFileAtomic,
   writeFileIfMissing,
 } = require("./filesystem");
 const {
@@ -110,9 +113,19 @@ async function ensureProfileScaffold(profileName, created) {
   await createFileTracked(getUserPath(profileName), "# USER\n", created);
   await createFileTracked(
     getUsagePath(profileName),
-    `${JSON.stringify({ schemaVersion: CURRENT_SCHEMA_VERSION, skills: {} }, null, 2)}\n`,
+    `${JSON.stringify(createDefaultUsage(), null, 2)}\n`,
     created,
   );
+
+  if (!created.files.includes(getUsagePath(profileName))) {
+    const existingUsage = await pathExists(getUsagePath(profileName));
+    if (existingUsage) {
+      const normalizedUsage = normalizeUsage(
+        JSON.parse(await fs.readFile(getUsagePath(profileName), "utf8")),
+      );
+      await writeFileIfChanged(getUsagePath(profileName), `${JSON.stringify(normalizedUsage, null, 2)}\n`);
+    }
+  }
 }
 
 async function ensureDirectoryTracked(directoryPath, created) {
@@ -132,6 +145,13 @@ async function createFileTracked(filePath, content, created) {
     created.files.push(filePath);
   }
   return createdFile;
+}
+
+async function writeFileIfChanged(filePath, content) {
+  const current = await fs.readFile(filePath, "utf8");
+  if (current !== content) {
+    await writeFileAtomic(filePath, content);
+  }
 }
 
 function getMemoryPath(profileName) {

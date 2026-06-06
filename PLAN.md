@@ -233,7 +233,7 @@ Results:
 - update flow preserves atomic writes, locking, and clean error messages
 - `SOUL.md` template is minimal and host-agnostic
 
-### Step 5: Hermes-style memory management
+### Step 5: Hermes-style memory management [DONE]
 
 What this achieves:
 Implement the built-in durable fact store using Hermes-style flat markdown files, while keeping operations simple and safe for agents.

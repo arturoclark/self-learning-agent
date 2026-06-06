@@ -1,5 +1,12 @@
 const { attachExamples } = require("../lib/examples");
-const { notImplemented } = require("../lib/not-implemented");
+const {
+  addMemoryEntry,
+  listMemoryEntries,
+  removeMemoryEntry,
+  replaceMemoryEntry,
+  viewMemoryTarget,
+} = require("../lib/memory");
+const { writeResult } = require("../lib/output");
 const { validateMemoryTarget, validateProfileName } = require("../lib/validation");
 
 function registerMemoryCommands(program) {
@@ -10,7 +17,26 @@ function registerMemoryCommands(program) {
     .argument("[name]", "Profile name.", validateOptionalProfileName)
     .description("List memory entries across built-in memory stores.")
     .addHelpText("after", attachExamples(["sle memory list", "sle memory list research --json"]))
-    .action((name, command) => notImplemented(command, "memory.list", `Memory listing will be implemented later.${name ? ` Target: ${name}.` : ""}`));
+    .action(async (...args) => {
+      const name = args[0];
+      const command = args.at(-1);
+      const result = await listMemoryEntries(name);
+      const human = result.targets
+        .map(
+          ({ target, entryCount, entries }) =>
+            `${target} (${entryCount})${entries.length ? `\n${entries.map((entry) => `- ${entry}`).join("\n")}` : "\n(no entries)"}`,
+        )
+        .join("\n\n");
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human },
+      );
+    });
 
   memory
     .command("add")
@@ -19,7 +45,21 @@ function registerMemoryCommands(program) {
     .requiredOption("--entry <text>", "Entry text to add.")
     .description("Add a new memory entry.")
     .addHelpText("after", attachExamples(["sle memory add research --target memory --entry \"Postgres runs locally\""]))
-    .action((name, command) => notImplemented(command, "memory.add", `Memory add will be implemented later.${name ? ` Target: ${name}.` : ""}`));
+    .action(async (...args) => {
+      const name = args[0];
+      const options = args[1];
+      const command = args.at(-1);
+      const result = await addMemoryEntry(name, options.target, options.entry);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human: `Added entry to ${result.target} for profile '${result.profile}'.` },
+      );
+    });
 
   memory
     .command("replace")
@@ -29,7 +69,21 @@ function registerMemoryCommands(program) {
     .requiredOption("--entry <text>", "Replacement entry text.")
     .description("Replace a matching memory entry.")
     .addHelpText("after", attachExamples(["sle memory replace research --target user --match \"Prefers Vim\" --entry \"Prefers Helix\""]))
-    .action((name, command) => notImplemented(command, "memory.replace", `Memory replace will be implemented later.${name ? ` Target: ${name}.` : ""}`));
+    .action(async (...args) => {
+      const name = args[0];
+      const options = args[1];
+      const command = args.at(-1);
+      const result = await replaceMemoryEntry(name, options.target, options.match, options.entry);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human: `Replaced entry in ${result.target} for profile '${result.profile}'.` },
+      );
+    });
 
   memory
     .command("remove")
@@ -38,7 +92,21 @@ function registerMemoryCommands(program) {
     .requiredOption("--match <text>", "Entry text to remove.")
     .description("Remove a matching memory entry.")
     .addHelpText("after", attachExamples(["sle memory remove research --target memory --match \"Old endpoint\""]))
-    .action((name, command) => notImplemented(command, "memory.remove", `Memory remove will be implemented later.${name ? ` Target: ${name}.` : ""}`));
+    .action(async (...args) => {
+      const name = args[0];
+      const options = args[1];
+      const command = args.at(-1);
+      const result = await removeMemoryEntry(name, options.target, options.match);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human: `Removed entry from ${result.target} for profile '${result.profile}'.` },
+      );
+    });
 
   memory
     .command("view")
@@ -46,7 +114,21 @@ function registerMemoryCommands(program) {
     .requiredOption("--target <target>", "Memory target: memory or user.", validateMemoryTarget)
     .description("Print raw or parsed contents for a memory target.")
     .addHelpText("after", attachExamples(["sle memory view research --target memory"]))
-    .action((name, command) => notImplemented(command, "memory.view", `Memory view will be implemented later.${name ? ` Target: ${name}.` : ""}`));
+    .action(async (...args) => {
+      const name = args[0];
+      const options = args[1];
+      const command = args.at(-1);
+      const result = await viewMemoryTarget(name, options.target);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human: result.raw.trimEnd() },
+      );
+    });
 }
 
 function validateOptionalProfileName(value) {
