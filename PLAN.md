@@ -289,7 +289,7 @@ Results:
 - host adapter interface is implemented and Codex conforms to it
 - `sle host list` reports adapter availability and installation status
 
-### Step 9: Hardening, packaging, and npm release readiness
+### Step 9: Hardening, packaging, and npm release readiness [DONE]
 
 What this achieves:
 Make the CLI safe to evolve after first release, resilient against partial writes or home layout changes, and ready to publish as a real npm package.

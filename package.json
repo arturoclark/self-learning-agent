@@ -1,13 +1,31 @@
 {
-  "name": "sle",
-  "version": "0.1.0",
-  "description": "Profile-scoped memory and skills CLI for agents.",
+  "name": "self-learning-agent",
+  "version": "1.0.0",
+  "description": "CLI for managing profile-scoped agent memory, skills, and Codex host wrappers.",
+  "author": "Arturo Clark",
   "bin": {
     "sle": "./bin/sle.js"
   },
   "type": "commonjs",
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arturoclark/self-learning-agent.git"
+  },
+  "bugs": {
+    "url": "https://github.com/arturoclark/self-learning-agent/issues"
+  },
+  "homepage": "https://github.com/arturoclark/self-learning-agent#readme",
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "test": "node --test",
@@ -15,8 +33,11 @@
   },
   "keywords": [
     "cli",
+    "agent-memory",
     "agents",
+    "codex",
     "memory",
+    "profile",
     "skills"
   ],
   "license": "MIT",

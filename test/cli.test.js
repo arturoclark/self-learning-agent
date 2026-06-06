@@ -5,11 +5,29 @@ const os = require("node:os");
 const path = require("path");
 const { spawnSync } = require("node:child_process");
 
+const repoRoot = path.join(__dirname, "..");
 const cliPath = path.join(__dirname, "..", "bin", "sle.js");
 
 function run(args, options = {}) {
-  return spawnSync(process.execPath, [cliPath, ...args], {
+  return runCommand(process.execPath, [cliPath, ...args], options);
+}
+
+function runCommand(command, args, options = {}) {
+  return spawnSync(command, args, {
     encoding: "utf8",
+    cwd: options.cwd || repoRoot,
+    input: options.input,
+    env: {
+      ...process.env,
+      ...options.env,
+    },
+  });
+}
+
+function runExternal(command, args, options = {}) {
+  return spawnSync(command, args, {
+    encoding: "utf8",
+    cwd: options.cwd || repoRoot,
     input: options.input,
     env: {
       ...process.env,
@@ -645,6 +663,75 @@ test("rerunning codex host install is idempotent and host list reports status", 
     },
   });
   assert.ok(listedParsed.data.hosts[0].installedAt);
+});
+
+test("npm pack dry run includes only publish-safe runtime files", () => {
+  const result = runExternal("npm", ["pack", "--json", "--dry-run"]);
+
+  assert.equal(result.status, 0, result.stderr);
+  const [packResult] = JSON.parse(result.stdout);
+  const packedFiles = packResult.files.map((entry) => entry.path).sort();
+
+  assert.deepEqual(packedFiles, [
+    "LICENSE",
+    "README.md",
+    "bin/sle.js",
+    "package.json",
+    "src/cli.js",
+    "src/commands/help.js",
+    "src/commands/host.js",
+    "src/commands/install.js",
+    "src/commands/memory.js",
+    "src/commands/profile.js",
+    "src/commands/root.js",
+    "src/commands/skill.js",
+    "src/commands/soul.js",
+    "src/commands/stats.js",
+    "src/lib/bootstrap.js",
+    "src/lib/config.js",
+    "src/lib/constants.js",
+    "src/lib/errors.js",
+    "src/lib/examples.js",
+    "src/lib/filesystem.js",
+    "src/lib/hosts.js",
+    "src/lib/memory.js",
+    "src/lib/not-implemented.js",
+    "src/lib/output.js",
+    "src/lib/paths.js",
+    "src/lib/profiles.js",
+    "src/lib/skills.js",
+    "src/lib/soul.js",
+    "src/lib/stats.js",
+    "src/lib/usage.js",
+    "src/lib/validation.js",
+  ]);
+});
+
+test("packed tarball installs cleanly and exposes the sle binary", async () => {
+  const packDestination = await fs.mkdtemp(path.join(os.tmpdir(), "sle-pack-"));
+  const installDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "sle-install-"));
+
+  const packed = runExternal("npm", ["pack", "--json", "--pack-destination", packDestination]);
+  assert.equal(packed.status, 0, packed.stderr);
+
+  const [packResult] = JSON.parse(packed.stdout);
+  const tarballPath = path.join(packDestination, packResult.filename);
+
+  const initialized = runExternal("npm", ["init", "-y"], { cwd: installDirectory });
+  assert.equal(initialized.status, 0, initialized.stderr);
+
+  const installed = runExternal("npm", ["install", tarballPath], { cwd: installDirectory });
+  assert.equal(installed.status, 0, installed.stderr);
+
+  const sleBinary = path.join(
+    installDirectory,
+    "node_modules",
+    ".bin",
+    process.platform === "win32" ? "sle.cmd" : "sle",
+  );
+  const help = runCommand(sleBinary, ["help"], { cwd: installDirectory });
+  assert.equal(help.status, 0, help.stderr);
+  assert.match(help.stdout, /Profile-scoped memory and skills CLI for agents\./);
 });
 
 async function createTempSleHome() {
