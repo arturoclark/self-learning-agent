@@ -30,12 +30,15 @@ Use this skill when the user asks to switch to a specific \`sla\` profile for th
 4. Treat that returned snapshot as the active profile context for the session.
 5. Use \`sla skill view <skill> <name>\` only when one of the listed skills is relevant and you need the full skill body.
 6. Use \`sla memory ... <name>\`, \`sla skill ... <name>\`, \`sla soul ... <name>\`, and \`sla stats profile <name>\` for profile-scoped reads and writes after the context load.
-7. State that the session is now operating against that profile and keep subsequent \`sla\` commands scoped to it until the user changes profiles again.
+7. Before finishing the task, evaluate whether you learned durable declarative context or a reusable procedure that belongs in this profile.
+8. If durable knowledge should be kept, persist it explicitly with the CLI: use \`sla memory add\` for facts and stable preferences, \`sla skill create|edit\` for reusable procedures, and \`sla profile classify <name> --stdin\` or \`--file\` when the correct target is unclear.
+9. State that the session is now operating against that profile and keep subsequent \`sla\` commands scoped to it until the user changes profiles again.
 
 ## Operating Rules
 
 - Prefer \`sla\` commands over direct filesystem edits for anything under \`~/.sla\`.
 - Facts and stable preferences belong in \`sla memory\`; reusable workflows and procedures belong in \`sla skill\`.
+- Persist only durable knowledge; do not store turn-local or obviously temporary notes unless the user explicitly asks.
 - If you are unsure whether something should be stored as memory, user memory, or a skill, run \`sla profile classify <name> --stdin\` or \`--file\` before writing it.
 - Do not guess profile names.
 - If the profile lookup fails or the user request is ambiguous, say: \`I don't know, help me get more context\`.
