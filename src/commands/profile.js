@@ -1,4 +1,5 @@
 const { attachExamples } = require("../lib/examples");
+const { classifyProfileKnowledge, getProfileContext } = require("../lib/profile-context");
 const { writeResult } = require("../lib/output");
 const {
   createProfile,
@@ -124,6 +125,57 @@ function registerProfileCommands(program) {
         },
         {
           human: result.profilePath,
+        },
+      );
+    });
+
+  profile
+    .command("context")
+    .argument("[name]", "Profile name.", validateOptionalProfileName)
+    .description("Return the canonical agent bootstrap context for a profile.")
+    .addHelpText("after", attachExamples(["sla profile context", "sla profile context research --json"]))
+    .action(async (...args) => {
+      const name = args[0];
+      const command = args.at(-1);
+      const result = await getProfileContext(name);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        {
+          human: result.renderedContext.trimEnd(),
+        },
+      );
+    });
+
+  profile
+    .command("classify")
+    .argument("[name]", "Profile name.", validateOptionalProfileName)
+    .option("--file <path>", "Read candidate content from a file.")
+    .option("--stdin", "Read candidate content from stdin.")
+    .description("Classify candidate knowledge as memory, user, skill, or none.")
+    .addHelpText("after", attachExamples(["sla profile classify research --stdin", "sla profile classify --file ./note.md --json"]))
+    .action(async (...args) => {
+      const name = args[0];
+      const options = args[1];
+      const command = args.at(-1);
+      const result = await classifyProfileKnowledge(name, options);
+      const recommendation =
+        result.classification === "skill"
+          ? `skill:${result.recommendedSkillName}`
+          : result.recommendedTarget || "none";
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        {
+          human: `${result.classification}: ${result.rationale}\nRecommendation: ${recommendation}`,
         },
       );
     });

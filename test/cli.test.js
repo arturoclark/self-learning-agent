@@ -53,8 +53,9 @@ test("prints focused command help", () => {
   assert.match(result.stdout, /sla profile create research/);
 });
 
-test("returns machine-readable JSON errors", () => {
-  const result = run(["profile", "list", "--json"]);
+test("returns machine-readable JSON errors", async () => {
+  const slaHome = await createTempSlaHome();
+  const result = run(["profile", "list", "--json"], { env: { SLA_HOME: slaHome } });
 
   assert.equal(result.status, 1);
   const parsed = JSON.parse(result.stdout);
@@ -165,6 +166,77 @@ test("returns profile directory using explicit or default resolution", async () 
   const defaultResult = run(["profile", "dir"], { env: { SLA_HOME: slaHome } });
   assert.equal(defaultResult.status, 0);
   assert.equal(defaultResult.stdout.trim(), path.join(slaHome, "default"));
+});
+
+test("returns canonical profile context for empty and populated profiles", async () => {
+  const slaHome = await createInstalledSlaHome();
+  run(["profile", "create", "research"], { env: { SLA_HOME: slaHome } });
+  run(["soul", "edit", "research", "--stdin"], {
+    env: { SLA_HOME: slaHome },
+    input: "# SOUL\n\nResearch profile for delivery API work.\n",
+  });
+  run(["memory", "add", "research", "--target", "memory", "--entry", "The API runs in us-east-1"], {
+    env: { SLA_HOME: slaHome },
+  });
+  run(["memory", "add", "research", "--target", "user", "--entry", "Prefers concise updates"], {
+    env: { SLA_HOME: slaHome },
+  });
+  run(["skill", "create", "deploy", "research"], { env: { SLA_HOME: slaHome } });
+  run(["skill", "view", "deploy", "research"], { env: { SLA_HOME: slaHome } });
+
+  const result = run(["profile", "context", "research", "--json"], { env: { SLA_HOME: slaHome } });
+  assert.equal(result.status, 0);
+
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.data.profile, "research");
+  assert.equal(parsed.data.profilePath, path.join(slaHome, "research"));
+  assert.equal(parsed.data.soul.raw, "# SOUL\n\nResearch profile for delivery API work.\n");
+  assert.deepEqual(parsed.data.memories.memory.entries, ["The API runs in us-east-1"]);
+  assert.deepEqual(parsed.data.memories.user.entries, ["Prefers concise updates"]);
+  assert.equal(parsed.data.skills.count, 1);
+  assert.equal(parsed.data.skills.index[0].skill, "deploy");
+  assert.equal(parsed.data.skills.index[0].usage.viewCount, 1);
+  assert.match(parsed.data.renderedContext, /## SOUL/);
+  assert.match(parsed.data.renderedContext, /## MEMORY/);
+  assert.match(parsed.data.renderedContext, /## USER/);
+  assert.match(parsed.data.renderedContext, /## SKILL INDEX/);
+});
+
+test("classifies candidate profile knowledge from stdin", async () => {
+  const slaHome = await createInstalledSlaHome();
+  run(["profile", "create", "research"], { env: { SLA_HOME: slaHome } });
+
+  const memoryResult = run(["profile", "classify", "research", "--stdin", "--json"], {
+    env: { SLA_HOME: slaHome },
+    input: "The API runs in us-east-1.\n",
+  });
+  assert.equal(memoryResult.status, 0);
+  assert.equal(JSON.parse(memoryResult.stdout).data.classification, "memory");
+
+  const userResult = run(["profile", "classify", "research", "--stdin", "--json"], {
+    env: { SLA_HOME: slaHome },
+    input: "User prefers concise updates.\n",
+  });
+  assert.equal(userResult.status, 0);
+  assert.equal(JSON.parse(userResult.stdout).data.classification, "user");
+
+  const skillResult = run(["profile", "classify", "research", "--stdin", "--json"], {
+    env: { SLA_HOME: slaHome },
+    input: "Deploy workflow\n1. Build the image\n2. Push to ECR\n3. Restart the service\n",
+  });
+  assert.equal(skillResult.status, 0);
+  const skillParsed = JSON.parse(skillResult.stdout);
+  assert.equal(skillParsed.data.classification, "skill");
+  assert.equal(skillParsed.data.recommendedTarget, "skill");
+  assert.equal(skillParsed.data.recommendedSkillName, "deploy-workflow");
+
+  const noneResult = run(["profile", "classify", "research", "--stdin", "--json"], {
+    env: { SLA_HOME: slaHome },
+    input: "Todo for today: debug this specific failure and follow up.\n",
+  });
+  assert.equal(noneResult.status, 0);
+  assert.equal(JSON.parse(noneResult.stdout).data.classification, "none");
 });
 
 test("sets and gets the default profile", async () => {
@@ -403,20 +475,20 @@ test("creates, lists, views, edits, and deletes skills", async () => {
 
   const listed = run(["skill", "list", "research", "--json"], { env: { SLA_HOME: slaHome } });
   assert.equal(listed.status, 0);
-  assert.deepEqual(JSON.parse(listed.stdout), {
-    ok: true,
-    data: {
-      profile: "research",
-      skills: [
-        {
-          skill: "deploy",
-          name: "deploy",
-          description: "TODO: describe this skill.",
-          path: path.join(slaHome, "research", "skills", "deploy", "SKILL.md"),
-        },
-      ],
-    },
-  });
+  const listedParsed = JSON.parse(listed.stdout);
+  assert.equal(listedParsed.ok, true);
+  assert.equal(listedParsed.data.profile, "research");
+  assert.equal(listedParsed.data.skills.length, 1);
+  assert.equal(listedParsed.data.skills[0].skill, "deploy");
+  assert.equal(listedParsed.data.skills[0].name, "deploy");
+  assert.equal(listedParsed.data.skills[0].description, "TODO: describe this skill.");
+  assert.equal(listedParsed.data.skills[0].path, path.join(slaHome, "research", "skills", "deploy", "SKILL.md"));
+  assert.equal(listedParsed.data.skills[0].usage.viewCount, 0);
+  assert.equal(listedParsed.data.skills[0].usage.editCount, 1);
+  assert.equal(listedParsed.data.skills[0].usage.useCount, 0);
+  assert.equal(listedParsed.data.skills[0].usage.lastOperation, "edit");
+  assert.ok(listedParsed.data.skills[0].usage.lastEditedAt);
+  assert.ok(listedParsed.data.skills[0].usage.lastActivityAt);
 
   const viewed = run(["skill", "view", "deploy", "research", "--json"], {
     env: { SLA_HOME: slaHome },
@@ -602,6 +674,7 @@ test("installs codex host wrappers and tracks installation metadata", async () =
     "utf8",
   );
   assert.match(useProfileSkill, /sla profile dir <name>/);
+  assert.match(useProfileSkill, /sla profile context <name> --json/);
   assert.match(useProfileSkill, /Do not guess profile names/);
 
   const useProfileAgent = await fs.readFile(
@@ -630,7 +703,15 @@ test("rerunning codex host install is idempotent and host list reports status", 
   });
   assert.equal(first.status, 0);
 
-  const second = run(["host", "install", "codex", "--json"], {
+  const blocked = run(["host", "install", "codex", "--json"], {
+    env: { SLA_HOME: slaHome, CODEX_HOME: codexHome },
+  });
+  assert.equal(blocked.status, 1);
+  const blockedParsed = JSON.parse(blocked.stdout);
+  assert.equal(blockedParsed.ok, false);
+  assert.equal(blockedParsed.error.code, "HOST_INSTALL_OVERWRITE_REQUIRED");
+
+  const second = run(["host", "install", "codex", "--yes", "--json"], {
     env: { SLA_HOME: slaHome, CODEX_HOME: codexHome },
   });
   assert.equal(second.status, 0);
@@ -698,6 +779,7 @@ test("npm pack dry run includes only publish-safe runtime files", () => {
     "src/lib/not-implemented.js",
     "src/lib/output.js",
     "src/lib/paths.js",
+    "src/lib/profile-context.js",
     "src/lib/profiles.js",
     "src/lib/skills.js",
     "src/lib/soul.js",

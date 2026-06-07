@@ -67,6 +67,23 @@ Operational rules:
 - all user-facing commands support human-readable output by default and `--json` for machine-readable agent consumption
 - stats and activity metadata use one normalized telemetry shape across profiles and hosts
 - skill metadata validation requires `SKILL.md` frontmatter with at least `name` and `description`
+- profile context is a Hermes-like snapshot read path, not semantic retrieval and not automatic host injection on its own
+
+Agent retrieval model:
+
+- built-in memory remains Hermes-style whole-store snapshot recall rather than search
+- `sla profile context` is the canonical profile bootstrap read for agents
+- the profile context snapshot includes `SOUL.md`, both memory targets, and a compact skill index with usage summaries
+- full skill bodies are loaded progressively with `sla skill view`, not injected into the context snapshot
+- Codex host skills must explicitly call `sla profile context`; there is no hidden runtime prompt injection in v1
+
+Persistence classification rules:
+
+- store durable declarative facts, constraints, environment notes, and stable preferences in memory
+- store user-specific stable preferences and identity/context in the `user` memory target
+- store reusable multi-step workflows, checklists, prompt recipes, decision trees, and command runbooks as skills
+- do not store ephemeral turn-local details unless the user explicitly asks or the content is clearly durable
+- `sla profile classify` is advisory only; all writes remain explicit CLI mutations
 
 ### CLI surface
 
@@ -88,6 +105,10 @@ Core commands:
   Lists all profiles and indicates which one is currently the default.
 - `sla profile dir [name]`
   Prints the absolute filesystem path for the selected profile.
+- `sla profile context [name]`
+  Returns the canonical agent bootstrap snapshot for a profile: `SOUL.md`, bounded built-in memory, and a compact skill index.
+- `sla profile classify [name] --file <path>` or `--stdin`
+  Classifies candidate durable knowledge as `memory`, `user`, `skill`, or `none`, with a rationale and recommended write target.
 - `sla profile set-default <name>`
   Sets the named profile as the default profile in global config.
 - `sla profile get-default`
@@ -162,9 +183,10 @@ First installed skills:
 
 Behavior:
 
-- `/use-profile {profile}` tells the agent to read from and write to that `sla` profile during the session
+- `/use-profile {profile}` tells the agent to resolve the profile, load `sla profile context`, and then read from and write to that `sla` profile during the session
 - `/create-profile` scaffolds a profile and captures explicit user intent into `SOUL.md`; no automatic synthesis in v1
 - `/update-profile` updates `SOUL.md`, memories, or skills for the named profile, defaulting to the configured default when omitted
+- installed skills must explain when to use memory vs `user` vs skill storage and may use `sla profile classify` before ambiguous writes
 
 Codex installer target:
 
@@ -306,6 +328,22 @@ Results:
 - package is ready for `npm publish`
 - README includes install, bootstrap, help, JSON output, and release-oriented quickstart guidance centered on `sla help`
 
+### Step 10: Hermes-like profile context and persistence guidance [PLANNED]
+
+What this achieves:
+Give Codex-hosted agents a canonical, Hermes-like way to bootstrap profile context at profile switch time, while making memory-vs-skill persistence decisions explicit and consistent.
+
+Results:
+- `sla profile context [name]` returns the canonical profile bootstrap snapshot for agents
+- profile context includes `SOUL.md`, `memory`, `user`, and a compact skill index with usage metadata
+- profile context human and JSON outputs are both optimized for direct agent consumption
+- `sla skill list` JSON includes usage summary without requiring full skill body loads
+- `sla profile classify [name]` classifies candidate durable knowledge as `memory`, `user`, `skill`, or `none`
+- classification returns a short rationale and the recommended write target or skill slug
+- classification is advisory only; all persistence still happens through explicit `sla memory ...`, `sla skill ...`, or `sla soul ...` commands
+- installed Codex `/use-profile` workflow requires loading `sla profile context` when switching profiles
+- installed Codex skills document the memory-vs-skill storage policy instead of leaving it implicit
+
 ## Test Plan
 
 Cover these scenarios:
@@ -330,6 +368,11 @@ Cover these scenarios:
 - `--json` output shape for profile, memory, skill, stats, and host commands
 - Codex host install on first run and re-run
 - installed `/use-profile` workflow correctly points the session at the chosen profile by instruction
+- `sla profile context` returns a full bootstrap snapshot for empty and populated profiles
+- default-profile resolution works correctly for `sla profile context`
+- `sla profile classify` returns `memory`, `user`, `skill`, and `none` for representative inputs
+- skill list JSON exposes usage summaries without loading full skill bodies
+- installed `/use-profile` workflow explicitly loads `sla profile context` before later profile-scoped commands
 - `npm pack` output installs cleanly and exposes the `sla` binary
 - published-package dry run verifies required files are present and unexpected files are absent
 - invalid profile names, missing skills, and ambiguous references fail without guessing
@@ -358,6 +401,8 @@ If any of these are missing, stop and ask rather than guessing.
 - built-in memory is Hermes-style flat markdown files, not JSON records
 - profile memories use exactly two stores in v1: `MEMORY.md` and `USER.md`
 - profile authoring is scaffold-only in v1; no AI synthesis of `SOUL.md` or starter memories
+- Hermes equivalence in Codex is wrapper-enforced bootstrap, not host-level automatic prompt injection
+- `sla profile context` is necessary for Hermes-like recall in Codex, but the host wrapper must explicitly call it
 - stats include usage telemetry, not just raw filesystem counts
 - Codex is the only concrete host installer in v1
 - profile omission always means “use default profile”

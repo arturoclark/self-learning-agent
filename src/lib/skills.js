@@ -4,7 +4,7 @@ const { SLAError } = require("./errors");
 const { ensureDirectory, pathExists, withFileLock, writeFileAtomic } = require("./filesystem");
 const { getSkillMarkdownPath, getSkillPath, getSkillsPath } = require("./paths");
 const { resolveExistingProfile } = require("./profiles");
-const { removeSkillUsage, updateSkillUsage } = require("./usage");
+const { loadUsage, removeSkillUsage, updateSkillUsage } = require("./usage");
 
 const FRONTMATTER_DELIMITER = "---";
 const ALLOWED_MANAGED_SUBDIRS = new Set(["references", "templates", "scripts", "assets"]);
@@ -12,6 +12,7 @@ const ALLOWED_MANAGED_SUBDIRS = new Set(["references", "templates", "scripts", "
 async function listSkills(requestedName) {
   const { profileName } = await resolveExistingProfile(requestedName);
   const skillsRoot = getSkillsPath(profileName);
+  const usage = await loadUsage(profileName);
   const entries = await fs.readdir(skillsRoot, { withFileTypes: true });
   const skills = [];
 
@@ -27,6 +28,7 @@ async function listSkills(requestedName) {
       name: skill.metadata.name,
       description: skill.metadata.description,
       path: skill.path,
+      usage: normalizeSkillUsageEntry(usage.skills[skillName]),
     });
   }
 
@@ -300,6 +302,21 @@ function parseFrontmatter(frontmatterRaw) {
   }
 
   return metadata;
+}
+
+function normalizeSkillUsageEntry(skillUsage) {
+  const input = skillUsage && typeof skillUsage === "object" ? skillUsage : {};
+
+  return {
+    viewCount: Number.isInteger(input.viewCount) ? input.viewCount : 0,
+    lastViewedAt: input.lastViewedAt ?? null,
+    editCount: Number.isInteger(input.editCount) ? input.editCount : 0,
+    lastEditedAt: input.lastEditedAt ?? null,
+    useCount: Number.isInteger(input.useCount) ? input.useCount : 0,
+    lastUsedAt: input.lastUsedAt ?? null,
+    lastActivityAt: input.lastActivityAt ?? null,
+    lastOperation: input.lastOperation ?? null,
+  };
 }
 
 function resolveManagedWritePath(skillMarkdownPath, subdir, relativePath) {
