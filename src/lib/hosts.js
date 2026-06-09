@@ -20,26 +20,31 @@ description: Use \`sla\` commands to switch the session to a named profile and k
 
 ## Overview
 
-Use this skill when the user asks to switch to a specific \`sla\` profile for the current task.
+Use this skill when the user asks to work inside a specific \`sla\` profile. The goal is to load the profile context first, then use the right CLI command for the kind of information you need.
 
 ## Workflow
 
 1. Determine the exact profile name from the user request. If no exact name is available, say: \`I don't know, help me get more context\`.
 2. Run \`sla profile dir <name>\` to verify the profile exists and capture its absolute path.
-3. Run \`sla profile context <name> --json\` to load the canonical profile snapshot: soul, built-in memory, and the compact skill index.
+3. Always run \`sla profile context <name> --json\` for the provided profile. This is required and not optional.
 4. Treat that returned snapshot as the active profile context for the session.
-5. Use \`sla skill view <skill> <name>\` only when one of the listed skills is relevant and you need the full skill body.
-6. Use \`sla memory ... <name>\`, \`sla skill ... <name>\`, \`sla soul ... <name>\`, and \`sla stats profile <name>\` for profile-scoped reads and writes after the context load.
-7. Before finishing the task, evaluate whether you learned durable declarative context or a reusable procedure that belongs in this profile.
-8. If durable knowledge should be kept, persist it explicitly with the CLI: use \`sla memory add\` for facts and stable preferences, \`sla skill create|edit\` for reusable procedures, and \`sla profile classify <name> --stdin\` or \`--file\` when the correct target is unclear.
-9. State that the session is now operating against that profile and keep subsequent \`sla\` commands scoped to it until the user changes profiles again.
+5. Use \`sla soul view <name>\` when you need the profile's purpose, constraints, or top-level identity as written in \`SOUL.md\`.
+6. Use \`sla memory list <name>\` or \`sla memory view <name> --target memory|user\` when you need durable facts, preferences, or user-specific context. Use \`list\` for the full current memory contents and \`view\` for one target.
+7. Use \`sla skill list <name>\` when you need the skill catalog. It is the compact index only.
+8. Use \`sla skill view <skill> <name>\` only when one of the listed skills is relevant and you need the full skill body before acting. Loading full skills depends on the task, but the profile context does not.
+9. Use \`sla stats profile <name>\` when you need activity or usage context, not for the core profile content itself.
+10. If the task reveals durable facts or preferences, persist them with \`sla memory add|replace|remove\`.
+11. If the task reveals a reusable workflow, persist it with \`sla skill create|edit|delete\`.
+12. If you cannot tell whether the new information belongs in memory, user memory, or a skill, run \`sla profile classify <name> --stdin\` or \`--file\` before writing anything.
+13. State that the session is now operating against that profile and keep subsequent \`sla\` commands scoped to it until the user changes profiles again.
 
 ## Operating Rules
 
 - Prefer \`sla\` commands over direct filesystem edits for anything under \`~/.sla\`.
 - Facts and stable preferences belong in \`sla memory\`; reusable workflows and procedures belong in \`sla skill\`.
 - Persist only durable knowledge; do not store turn-local or obviously temporary notes unless the user explicitly asks.
-- If you are unsure whether something should be stored as memory, user memory, or a skill, run \`sla profile classify <name> --stdin\` or \`--file\` before writing it.
+- Use \`sla profile context\` as the required starting point for a profile session, then load more detail only when the current task needs it.
+- Do not treat the compact skill index as full skill content.
 - Do not guess profile names.
 - If the profile lookup fails or the user request is ambiguous, say: \`I don't know, help me get more context\`.
 `,
