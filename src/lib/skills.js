@@ -72,6 +72,7 @@ async function createSkill(skillName, requestedName) {
     }
 
     await ensureDirectory(skillPath);
+    await ensureManagedSkillSubdirectories(skillPath);
     const raw = buildDefaultSkillContent(skillName);
     validateSkillContent(raw);
     await writeFileAtomic(skillMarkdownPath, raw);
@@ -85,6 +86,33 @@ async function createSkill(skillName, requestedName) {
       path: skillMarkdownPath,
       raw,
       metadata: parseSkillContent(raw).metadata,
+    };
+  });
+}
+
+async function createSkillReference(skillName, requestedName, options) {
+  const { profileName } = await resolveExistingProfile(requestedName);
+  const skillPath = getSkillPath(profileName, skillName);
+  const skillMarkdownPath = await assertSkillExists(profileName, skillName);
+  const lockPath = `${skillPath}.lock`;
+  const referenceRelativePath = normalizeReferenceFilePath(options.path);
+  const referencePath = resolveManagedWritePath(skillMarkdownPath, "references", referenceRelativePath);
+
+  return withFileLock(lockPath, async () => {
+    await ensureDirectory(path.dirname(referencePath.absolutePath));
+    const raw = await resolveReferenceContent(skillName, options);
+    await writeFileAtomic(referencePath.absolutePath, raw);
+
+    const timestamp = new Date().toISOString();
+    await updateSkillUsage(profileName, skillName, "edit", timestamp);
+
+    return {
+      profile: profileName,
+      skill: skillName,
+      path: referencePath.relativePath,
+      absolutePath: referencePath.absolutePath,
+      title: extractReferenceTitle(raw),
+      source: describeReferenceSource(options),
     };
   });
 }
@@ -228,7 +256,32 @@ function buildDefaultSkillContent(skillName) {
     "",
     "## Purpose",
     "",
-    "Describe when to use this skill.",
+    "Describe the reusable procedure this skill owns.",
+    "",
+    "## Workflow",
+    "",
+    "List the repeatable steps, decision points, and commands here.",
+    "",
+    "## References",
+    "",
+    "- Put deep repo context, incident analysis, architecture notes, and implementation plans in `references/*.md`.",
+    "",
+  ].join("\n");
+}
+
+function buildDefaultReferenceContent(skillName, title) {
+  return [
+    `# ${title}`,
+    "",
+    `Reference document for the \`${skillName}\` skill.`,
+    "",
+    "## Summary",
+    "",
+    "Capture the durable repo-specific context this skill depends on.",
+    "",
+    "## Details",
+    "",
+    "Add architecture notes, environment mappings, incident analysis, file maps, API shapes, or implementation plans here.",
     "",
   ].join("\n");
 }
@@ -378,6 +431,76 @@ function assertAllowedSubdir(subdir) {
   }
 }
 
+async function ensureManagedSkillSubdirectories(skillPath) {
+  for (const subdir of ALLOWED_MANAGED_SUBDIRS) {
+    await ensureDirectory(path.join(skillPath, subdir));
+  }
+}
+
+async function resolveReferenceContent(skillName, options = {}) {
+  const hasFile = Boolean(options.file);
+  const hasStdin = Boolean(options.stdin);
+
+  if (hasFile || hasStdin) {
+    const source = resolveContentSource(options, "INVALID_SKILL_REFERENCE_INPUT");
+    return normalizeDocumentContent(
+      await readContentSource(source),
+      "Reference content may not be empty.",
+      "INVALID_SKILL_REFERENCE_CONTENT",
+    );
+  }
+
+  const title = normalizeReferenceTitle(options.title);
+  return buildDefaultReferenceContent(skillName, title);
+}
+
+function normalizeReferenceTitle(title) {
+  const normalized = String(title || "").trim();
+  if (!normalized) {
+    throw new SLAError("Reference title is required when --file or --stdin is not provided.", {
+      code: "INVALID_SKILL_REFERENCE_TITLE",
+      exitCode: 2,
+      details: { title: title ?? null },
+    });
+  }
+
+  return normalized;
+}
+
+function normalizeReferenceFilePath(relativePath) {
+  const normalized = normalizeManagedPath(relativePath);
+  if (!normalized.toLowerCase().endsWith(".md")) {
+    throw new SLAError("Reference files must use a .md path.", {
+      code: "INVALID_SKILL_REFERENCE_PATH",
+      exitCode: 2,
+      details: { value: relativePath },
+    });
+  }
+
+  return normalized;
+}
+
+function extractReferenceTitle(raw) {
+  const firstHeading = raw
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line.startsWith("# "));
+
+  return firstHeading ? firstHeading.slice(2).trim() : null;
+}
+
+function describeReferenceSource(options = {}) {
+  if (options.file) {
+    return "file";
+  }
+
+  if (options.stdin) {
+    return "stdin";
+  }
+
+  return "generated";
+}
+
 function resolveContentSource(options = {}, code) {
   const hasFile = Boolean(options.file);
   const hasStdin = Boolean(options.stdin);
@@ -426,6 +549,7 @@ function normalizeDocumentContent(content, message, code) {
 }
 
 module.exports = {
+  createSkillReference,
   createSkill,
   deleteSkill,
   editSkill,

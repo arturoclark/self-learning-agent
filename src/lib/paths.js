@@ -49,6 +49,14 @@ function getCodexSkillsPath() {
   return path.join(getCodexHome(), "skills");
 }
 
+function getCodexHooksPath() {
+  return path.join(getCodexHome(), "hooks");
+}
+
+function getCodexHooksConfigPath() {
+  return path.join(getCodexHome(), "hooks.json");
+}
+
 function getCodexSkillPath(skillName) {
   return path.join(getCodexSkillsPath(), skillName);
 }
@@ -57,9 +65,16 @@ function getCodexAgentPath(skillName, agentName = "openai") {
   return path.join(getCodexSkillPath(skillName), "agents", `${agentName}.yaml`);
 }
 
+function getCodexHookScriptPath(scriptName) {
+  return path.join(getCodexHooksPath(), scriptName);
+}
+
 module.exports = {
   getCodexAgentPath,
+  getCodexHookScriptPath,
   getCodexHome,
+  getCodexHooksConfigPath,
+  getCodexHooksPath,
   getCodexSkillPath,
   getCodexSkillsPath,
   getConfigPath,

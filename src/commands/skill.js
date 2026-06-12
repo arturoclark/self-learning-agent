@@ -1,6 +1,7 @@
 const { attachExamples } = require("../lib/examples");
 const { writeResult } = require("../lib/output");
 const {
+  createSkillReference,
   createSkill,
   deleteSkill,
   editSkill,
@@ -79,6 +80,39 @@ function registerSkillCommands(program) {
           data: result,
         },
         { human: `Created skill '${result.skill}' for profile '${result.profile}'.` },
+      );
+    });
+
+  skill
+    .command("create-reference")
+    .argument("<skill>", "Skill name.", validateSkillName)
+    .argument("[name]", "Profile name.", validateOptionalProfileName)
+    .requiredOption("--path <relativePath>", "Reference file path inside references/.", validateRelativeManagedPath)
+    .option("--title <title>", "Reference title for generated scaffolds.")
+    .option("--file <path>", "Read reference content from a file.")
+    .option("--stdin", "Read reference content from stdin.")
+    .description("Create a reference markdown file for a skill.")
+    .addHelpText(
+      "after",
+      attachExamples([
+        "sla skill create-reference deploy research --path release-flow.md --title \"Release Flow\"",
+        "cat notes.md | sla skill create-reference deploy --path incident-analysis.md --stdin",
+      ]),
+    )
+    .action(async (...args) => {
+      const skillName = args[0];
+      const name = args[1];
+      const options = args[2];
+      const command = args.at(-1);
+      const result = await createSkillReference(skillName, name, options);
+
+      return writeResult(
+        command,
+        {
+          ok: true,
+          data: result,
+        },
+        { human: `Created ${result.path} for skill '${result.skill}' in profile '${result.profile}'.` },
       );
     });
 
