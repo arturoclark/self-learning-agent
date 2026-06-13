@@ -41,23 +41,28 @@ Use this skill when the user asks to work inside a specific \`sla\` profile. The
 7. Use \`sla skill list <name>\` when you need the skill catalog. It is the compact index only.
 8. Use \`sla skill view <skill> <name>\` only when one of the listed skills is relevant and you need the full skill body before acting. Loading full skills depends on the task, but the profile context does not.
 9. Use \`sla stats profile <name>\` when you need activity or usage context, not for the core profile content itself.
-10. Treat persistence review as mandatory before you finish the task or end the turn. Explicitly ask: did this session produce a durable fact, a reusable procedure, or deep supporting reference material?
+10. Treat persistence review as mandatory before you finish the task or end the turn. Explicitly ask: did this session produce a durable fact, a reusable skill-worthy capability, or deep supporting reference material?
 11. Persist durable facts, constraints, environment notes, and stable preferences with \`sla memory add|replace|remove\`.
-12. Persist reusable multi-step workflows, checklists, decision trees, debugging playbooks, deploy flows, code-change runbooks, and repo-specific operating procedures with \`sla skill create|edit|delete\`.
-13. Keep \`SKILL.md\` procedural. It should say when to use the skill, the workflow to follow, the important commands/files, and the key decision points.
-14. When the session produces deeper material that is too large or explanatory for memory and not itself a procedure, create or update reference docs under that skill with \`sla skill create-reference <skill> <name> --path <file>.md --title "<Title>"\` or \`sla skill write-file <skill> <name> --subdir references --path <file>.md\`.
-15. Use skill references for architecture maps, environment inventories, branch and deploy matrices, bug forensics, incident writeups, API shapes, file maps, implementation plans, and other rich repo context that supports a skill.
-16. If you cannot tell whether new information belongs in memory, user memory, or a skill, run \`sla profile classify <name> --stdin\` or \`--file\` before writing anything. If it is clearly reference material that belongs under an existing skill, create or update a reference doc instead of flattening it into memory.
-17. If later work in the same session spans multiple explicit \`/use-profile\` commands, persist durable memories, skills, and references against the correct profile for each piece of work instead of collapsing everything into one default profile.
-18. Only store durable knowledge learned from the session. After any needed persistence work, finish the turn.
-19. State that the session is now operating against that profile and keep subsequent \`sla\` commands scoped to it until the user changes profiles again.
+12. Persist reusable repo/domain/task capabilities with \`sla skill create|edit|delete\`. Store a skill when the session produced guidance that should help an agent succeed again in the same codebase, system, or recurring task family, not just when you discovered a strict step-by-step procedure.
+13. A skill is the right target when the learned material would be useful across future sessions as an operational guide, such as workflows, checklists, decision trees, debugging playbooks, deploy and release flows, repo maps, file-entrypoint maps, environment and branch rules, API integration patterns, auth and routing rules, or other recurring implementation guidance.
+14. Do not flatten that kind of reusable operational knowledge into memory entries. If it is richer than a short fact and should guide future work, it belongs in a skill even when it mixes procedure with concise reference context.
+15. Keep \`SKILL.md\` action-oriented and procedural. It should say when to use the skill, how to proceed, the important commands/files, the key decision points, and any concise operational context needed to execute correctly.
+16. When the session produces deeper material that is too large or explanatory for memory and not itself the main workflow, create or update reference docs under that skill with \`sla skill create-reference <skill> <name> --path <file>.md --title "<Title>"\` or \`sla skill write-file <skill> <name> --subdir references --path <file>.md\`.
+17. Use skill references for architecture maps, environment inventories, branch and deploy matrices, bug forensics, incident writeups, API shapes, file maps, implementation plans, and other rich repo context that supports a skill.
+18. If you cannot tell whether new information belongs in memory, user memory, or a skill, run \`sla profile classify <name> --stdin\` or \`--file\` before writing anything. If it is clearly reference material that belongs under an existing skill, create or update a reference doc instead of flattening it into memory.
+19. If later work in the same session spans multiple explicit \`/use-profile\` commands, persist durable memories, skills, and references against the correct profile for each piece of work instead of collapsing everything into one default profile.
+20. Only store durable knowledge learned from the session. After any needed persistence work, finish the turn.
+21. State that the session is now operating against that profile and keep subsequent \`sla\` commands scoped to it until the user changes profiles again.
 
 ## Operating Rules
 
 - Prefer \`sla\` commands over direct filesystem edits for anything under \`~/.sla\`.
-- Facts and stable preferences belong in \`sla memory\`; reusable workflows and procedures belong in \`sla skill\`; rich supporting context belongs in \`references/*.md\` inside the relevant skill directory.
+- Facts and stable preferences belong in \`sla memory\`.
+- Reusable operational knowledge belongs in \`sla skill\`: anything an agent should reuse later as a guide for working in the same repo, domain, system, or recurring task family.
+- Use skills for capabilities such as implementation workflows, debugging approaches, deploy/release runbooks, repo maps, environment matrices, integration patterns, file/entrypoint guides, and decision rules.
+- Keep rich supporting context in \`references/*.md\` inside the relevant skill directory when it is too detailed for \`SKILL.md\` or is supporting analysis rather than the main workflow.
 - Persist only durable knowledge; do not store turn-local or obviously temporary notes unless the user explicitly asks.
-- Before ending a profiled task, do one final persistence review for durable facts, preferences, reusable workflows, and supporting reference material learned during the session.
+- Before ending a profiled task, do one final persistence review for durable facts, reusable skill-worthy guidance, and supporting reference material learned during the session.
 - Use \`sla profile context\` as the required starting point for a profile session, then load more detail only when the current task needs it.
 - Do not treat the compact skill index as full skill content.
 - Do not guess profile names.
@@ -392,13 +397,15 @@ function renderCodexStopHookScript() {
     "const response = {",
     '  decision: "block",',
     '  reason: [',
-    '    "SLA: Before stopping, review this session for durable SLA profile updates.",',
+    '    "SLA -> Before stopping, review this session for durable SLA profile updates.",',
     '    "Use `sla` CLI commands, not direct edits under `~/.sla`.",',
     "    profileInstruction,",
-    '    "Do a mandatory persistence review: identify any durable facts, reusable procedures, or rich supporting reference material learned during the session.",',
+    '    "Do a mandatory persistence review: identify any durable facts, reusable skill-worthy capabilities, or rich supporting reference material learned during the session.",',
     '    "Persist durable facts, constraints, environment notes, and stable preferences with `sla memory add`, `sla memory replace`, or `sla memory remove`.",',
-    '    "Persist reusable workflows, debugging playbooks, deploy runbooks, implementation checklists, and other multi-step repo procedures by creating or updating a skill with `sla skill` commands.",',
-    '    "Keep `SKILL.md` procedural. Put deep supporting context in `references/*.md` under the relevant skill directory.",',
+    '    "Persist reusable repo/domain/task capabilities by creating or updating a skill with `sla skill` commands. Store a skill when the session produced guidance that should help an agent succeed again in the same codebase, system, or recurring task family, not just when you discovered a strict step-by-step procedure.",',
+    '    "A skill is the right target for reusable operational guidance such as workflows, checklists, debugging playbooks, deploy/release runbooks, repo maps, environment rules, integration patterns, auth/routing rules, file-entrypoint guides, and similar recurring implementation knowledge.",',
+    '    "Do not flatten that kind of reusable guidance into memory. Keep `SKILL.md` action-oriented: when to use the skill, how to proceed, the important commands/files, the decision points, and any concise operational context needed to execute correctly.",',
+    '    "Put deep supporting context in `references/*.md` under the relevant skill directory.",',
     '    "Create or update reference docs for architecture notes, environment matrices, bug forensics, API shapes, file maps, and implementation plans with `sla skill create-reference <skill> <name> --path <file>.md --title \\"<Title>\\"` or `sla skill write-file <skill> <name> --subdir references --path <file>.md`.",',
     '    "If the storage target is ambiguous, run `sla profile classify <name> --stdin` or `--file` first. If the material clearly supports an existing skill without being a procedure itself, store it as a reference, not a memory entry.",',
     '    "Only store durable knowledge learned from the session. After any needed persistence work, finish the turn."',

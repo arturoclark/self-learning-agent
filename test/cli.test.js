@@ -735,7 +735,8 @@ test("installs codex host wrappers and tracks installation metadata", async () =
   assert.match(useProfileSkill, /sla profile dir <name>/);
   assert.match(useProfileSkill, /sla profile context <name> --json/);
   assert.match(useProfileSkill, /sla skill create-reference <skill> <name> --path <file>\.md --title/);
-  assert.match(useProfileSkill, /rich supporting context belongs in `references\/\*\.md`/);
+  assert.match(useProfileSkill, /Reusable operational knowledge belongs in `sla skill`/);
+  assert.match(useProfileSkill, /Keep rich supporting context in `references\/\*\.md`/);
   assert.match(useProfileSkill, /Do not guess profile names/);
 
   const useProfileAgent = await fs.readFile(
@@ -1103,7 +1104,7 @@ test("installed codex stop hook includes profiles extracted from the session tra
 
   const payload = JSON.parse(hookResult.stdout);
   assert.equal(payload.decision, "block");
-  assert.match(payload.reason, /^SLA: Before stopping, review this session for durable SLA profile updates\./);
+  assert.match(payload.reason, /^SLA -> Before stopping, review this session for durable SLA profile updates\./);
   assert.match(payload.reason, /Use the SLA profiles established in this session: research, ops\./);
   assert.match(
     payload.reason,
@@ -1149,10 +1150,11 @@ test("installed codex stop hook ignores prose mentions of /use-profile", async (
   assert.equal(hookResult.status, 0, hookResult.stderr);
 
   const payload = JSON.parse(hookResult.stdout);
-  assert.match(payload.reason, /^SLA: Before stopping, review this session for durable SLA profile updates\./);
+  assert.match(payload.reason, /^SLA -> Before stopping, review this session for durable SLA profile updates\./);
   assert.doesNotMatch(payload.reason, /Use the SLA profiles established in this session:/);
   assert.match(payload.reason, /If no explicit profile was established, use `sla profile get-default`/);
-  assert.match(payload.reason, /Keep `SKILL.md` procedural/);
+  assert.match(payload.reason, /Persist reusable repo\/domain\/task capabilities by creating or updating a skill/);
+  assert.match(payload.reason, /Keep `SKILL.md` action-oriented/);
 });
 
 test("installed codex stop hook falls back when no explicit profile was established", async () => {
@@ -1191,7 +1193,7 @@ test("installed codex stop hook falls back when no explicit profile was establis
 
   const payload = JSON.parse(hookResult.stdout);
   assert.equal(payload.decision, "block");
-  assert.match(payload.reason, /^SLA: Before stopping, review this session for durable SLA profile updates\./);
+  assert.match(payload.reason, /^SLA -> Before stopping, review this session for durable SLA profile updates\./);
   assert.match(payload.reason, /If no explicit profile was established, use `sla profile get-default`/);
   assert.match(payload.reason, /Create or update reference docs/);
 });
